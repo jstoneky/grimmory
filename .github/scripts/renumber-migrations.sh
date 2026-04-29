@@ -43,9 +43,14 @@ if ! $needs_renumber; then
   exit 0
 fi
 
-echo "Collision detected. Renumbering custom migrations above V${max_upstream}..."
+# Always anchor custom migrations at V900+ so they never collide with upstream
+# in practice (upstream would need ~750 more releases to reach this range).
+CUSTOM_BASE=900
+floor=$(( max_upstream > CUSTOM_BASE ? max_upstream : CUSTOM_BASE ))
 
-next=$((max_upstream + 1))
+echo "Collision detected. Renumbering custom migrations above V${floor}..."
+
+next=$((floor + 1))
 for f in "${our_migrations[@]}"; do
   filename=$(basename "$f")
   suffix="${filename#V*__}"          # everything after V<n>__
