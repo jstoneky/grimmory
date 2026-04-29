@@ -101,6 +101,9 @@ public class AcquisitionConfigService {
     }
 
     public ClientDTO createClient(ClientDTO dto) {
+        if (clientRepository.count() > 0) {
+            throw ApiError.CONFLICT.createException("Only one download client is supported. Edit or delete the existing client.");
+        }
         AcquisitionClientEntity entity = AcquisitionClientEntity.builder()
                 .name(dto.name())
                 .type(AcquisitionClientType.valueOf(dto.type()))

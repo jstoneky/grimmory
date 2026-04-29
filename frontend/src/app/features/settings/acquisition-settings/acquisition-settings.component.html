@@ -83,8 +83,10 @@
             Configure SABnzbd clients. Grimmory sends matched NZBs here for downloading.
           </p>
         </div>
-        <p-button icon="pi pi-plus" label="Add Client" severity="success" size="small"
-                  [outlined]="true" (onClick)="openAddClientDialog()"></p-button>
+        @if (clients.length === 0) {
+          <p-button icon="pi pi-plus" label="Add Client" severity="success" size="small"
+                    [outlined]="true" (onClick)="openAddClientDialog()"></p-button>
+        }
       </div>
     </div>
 
