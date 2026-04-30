@@ -11,6 +11,7 @@ import org.booklore.model.websocket.Topic;
 import org.booklore.repository.BookdropFileRepository;
 import org.booklore.service.NotificationService;
 import org.booklore.service.appsettings.AppSettingService;
+import org.springframework.context.annotation.Lazy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
@@ -54,7 +55,7 @@ public class BookdropEventHandlerService implements SmartLifecycle {
             BookdropNotificationService bookdropNotificationService,
             AppSettingService appSettingService,
             BookdropMetadataService bookdropMetadataService,
-            BookDropService bookDropService) {
+            @Lazy BookDropService bookDropService) {
         this.bookdropFileRepository = bookdropFileRepository;
         this.notificationService = notificationService;
         this.bookdropNotificationService = bookdropNotificationService;
