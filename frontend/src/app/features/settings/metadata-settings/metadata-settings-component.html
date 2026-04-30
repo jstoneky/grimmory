@@ -38,6 +38,62 @@
         </div>
       </div>
     </div>
+    <div class="section-divider"><hr></div>
+    <div class="preferences-section">
+      <div class="settings-card">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="pi pi-bolt"></i>
+            BookDrop Auto Import
+          </h3>
+          <p class="section-description">
+            Automatically import books into a library when BookDrop finishes processing them, skipping manual review.
+            Leave the library unset to keep manual review enabled.
+          </p>
+        </div>
+
+        <div class="section-body">
+          <div class="setting-item">
+            <label for="auto-import-library" class="setting-label">Default Library</label>
+            <div style="margin-top:0.5rem;">
+              <p-select
+                inputId="auto-import-library"
+                [options]="autoImportLibraryOptions"
+                [(ngModel)]="selectedAutoImportLibraryId"
+                optionLabel="label"
+                optionValue="value"
+                [showClear]="true"
+                placeholder="Disabled — select a library to enable"
+                [style]="{width:'100%'}"
+                ariaLabel="Default library for auto import"
+                (onChange)="onAutoImportLibraryChange($event.value)"
+                (onClear)="onAutoImportLibraryChange(null)">
+              </p-select>
+            </div>
+          </div>
+
+          @if (selectedAutoImportLibraryId) {
+            <div class="setting-item" style="margin-top:0.75rem;">
+              <label for="auto-import-path" class="setting-label">Default Path</label>
+              <div style="margin-top:0.5rem;">
+                <p-select
+                  inputId="auto-import-path"
+                  [options]="autoImportPathOptions"
+                  [(ngModel)]="selectedAutoImportPathId"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select a path"
+                  [style]="{width:'100%'}"
+                  ariaLabel="Default path within the selected library"
+                  (onChange)="onAutoImportPathChange($event.value)">
+                </p-select>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
     <app-metadata-provider-settings></app-metadata-provider-settings>
     <div class="section-divider"><hr></div>
     <app-metadata-provider-field-selector></app-metadata-provider-field-selector>

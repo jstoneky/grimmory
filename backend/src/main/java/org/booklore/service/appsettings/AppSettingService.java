@@ -170,6 +170,17 @@ public class AppSettingService {
         builder.maxFileUploadSizeInMb(Integer.parseInt(settingPersistenceHelper.getOrCreateSetting(AppSettingKey.MAX_FILE_UPLOAD_SIZE_IN_MB, "100")));
         builder.metadataDownloadOnBookdrop(Boolean.parseBoolean(settingPersistenceHelper.getOrCreateSetting(AppSettingKey.METADATA_DOWNLOAD_ON_BOOKDROP, "true")));
 
+        String autoImportLibraryIdStr = settingsMap.get(AppSettingKey.BOOKDROP_AUTO_IMPORT_LIBRARY_ID.getDbKey());
+        if (autoImportLibraryIdStr != null && !autoImportLibraryIdStr.isBlank()) {
+            try { builder.bookdropAutoImportLibraryId(Long.parseLong(autoImportLibraryIdStr)); }
+            catch (NumberFormatException ignored) {}
+        }
+        String autoImportPathIdStr = settingsMap.get(AppSettingKey.BOOKDROP_AUTO_IMPORT_PATH_ID.getDbKey());
+        if (autoImportPathIdStr != null && !autoImportPathIdStr.isBlank()) {
+            try { builder.bookdropAutoImportPathId(Long.parseLong(autoImportPathIdStr)); }
+            catch (NumberFormatException ignored) {}
+        }
+
         String sessionDurationStr = settingsMap.get(AppSettingKey.OIDC_SESSION_DURATION_HOURS.getDbKey());
         if (sessionDurationStr != null && !sessionDurationStr.isBlank()) {
             try {

@@ -1,6 +1,8 @@
 package org.booklore.service.bookdrop;
 
 import org.booklore.model.BookDropFileEvent;
+import org.booklore.model.dto.request.BookdropFinalizeRequest;
+import org.booklore.model.dto.settings.AppSettings;
 import org.booklore.model.entity.BookdropFileEntity;
 import org.booklore.model.enums.BookFileExtension;
 import org.booklore.model.enums.PermissionType;
@@ -20,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -35,6 +38,7 @@ public class BookdropEventHandlerService implements SmartLifecycle {
     private final BookdropNotificationService bookdropNotificationService;
     private final AppSettingService appSettingService;
     private final BookdropMetadataService bookdropMetadataService;
+    private final BookDropService bookDropService;
 
     private static final long STABILITY_CHECK_INTERVAL_MS = 500;
     private static final int STABILITY_REQUIRED_CHECKS = 3;
@@ -49,12 +53,14 @@ public class BookdropEventHandlerService implements SmartLifecycle {
             NotificationService notificationService,
             BookdropNotificationService bookdropNotificationService,
             AppSettingService appSettingService,
-            BookdropMetadataService bookdropMetadataService) {
+            BookdropMetadataService bookdropMetadataService,
+            BookDropService bookDropService) {
         this.bookdropFileRepository = bookdropFileRepository;
         this.notificationService = notificationService;
         this.bookdropNotificationService = bookdropNotificationService;
         this.appSettingService = appSettingService;
         this.bookdropMetadataService = bookdropMetadataService;
+        this.bookDropService = bookDropService;
     }
 
     @Override
@@ -178,6 +184,11 @@ public class BookdropEventHandlerService implements SmartLifecycle {
 
                 bookdropNotificationService.sendBookdropFileSummaryNotification();
 
+                AppSettings settings = appSettingService.getAppSettings();
+                if (settings.getBookdropAutoImportLibraryId() != null) {
+                    triggerAutoImport(bookdropFileEntity.getId(), settings.getBookdropAutoImportLibraryId(), settings.getBookdropAutoImportPathId());
+                }
+
                 if (fileQueue.isEmpty()) {
                     notificationService.sendMessageToPermissions(
                             Topic.LOG,
@@ -204,6 +215,26 @@ public class BookdropEventHandlerService implements SmartLifecycle {
             log.info("Deleted {} BookdropFile record(s) from database matching path: {}", deletedCount, deletedPath);
 
             bookdropNotificationService.sendBookdropFileSummaryNotification();
+        }
+    }
+
+    private void triggerAutoImport(Long fileId, Long libraryId, Long pathId) {
+        try {
+            BookdropFinalizeRequest.BookdropFinalizeFile fileReq = new BookdropFinalizeRequest.BookdropFinalizeFile();
+            fileReq.setFileId(fileId);
+            fileReq.setLibraryId(libraryId);
+            fileReq.setPathId(pathId);
+
+            BookdropFinalizeRequest request = new BookdropFinalizeRequest();
+            request.setSelectAll(false);
+            request.setFiles(List.of(fileReq));
+            request.setDefaultLibraryId(libraryId);
+            request.setDefaultPathId(pathId);
+
+            bookDropService.finalizeImport(request);
+            log.info("Auto-imported bookdrop file id={} to library id={}", fileId, libraryId);
+        } catch (Exception e) {
+            log.error("Auto-import failed for bookdrop file id={}: {}", fileId, e.getMessage(), e);
         }
     }
 
