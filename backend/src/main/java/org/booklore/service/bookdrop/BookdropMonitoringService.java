@@ -12,7 +12,9 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
@@ -31,7 +33,7 @@ public class BookdropMonitoringService implements SmartLifecycle {
     private WatchService watchService;
     private Thread watchThread;
     private volatile boolean running;
-    private WatchKey watchKey;
+    private final Map<WatchKey, Path> watchKeys = new ConcurrentHashMap<>();
     private volatile boolean paused;
     private volatile boolean disabled;
     private final Lock monitorLock = new ReentrantLock();
@@ -64,9 +66,7 @@ public class BookdropMonitoringService implements SmartLifecycle {
         try {
             log.info("Starting bookdrop folder monitor: {}", bookdrop);
             this.watchService = FileSystems.getDefault().newWatchService();
-            this.watchKey = bookdrop.register(watchService,
-                    StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE);
+            registerDirectory(bookdrop);
             this.running = true;
             this.paused = false;
             this.watchThread = new Thread(this::processEvents, "BookdropFolderWatcher");
@@ -124,10 +124,8 @@ public class BookdropMonitoringService implements SmartLifecycle {
         monitorLock.lock();
         try {
             if (!paused) {
-                if (watchKey != null) {
-                    watchKey.cancel();
-                    watchKey = null;
-                }
+                watchKeys.keySet().forEach(WatchKey::cancel);
+                watchKeys.clear();
                 paused = true;
                 log.info("Bookdrop monitoring paused.");
             } else {
@@ -144,9 +142,15 @@ public class BookdropMonitoringService implements SmartLifecycle {
         try {
             if (paused) {
                 try {
-                    watchKey = bookdrop.register(watchService,
-                            StandardWatchEventKinds.ENTRY_CREATE,
-                            StandardWatchEventKinds.ENTRY_DELETE);
+                    registerDirectory(bookdrop);
+                    try (Stream<Path> dirs = Files.walk(bookdrop)) {
+                        dirs.filter(Files::isDirectory)
+                                .filter(d -> !d.equals(bookdrop))
+                                .forEach(d -> {
+                                    try { registerDirectory(d); }
+                                    catch (IOException e) { log.warn("Failed to re-register subdirectory watch: {}", d, e); }
+                                });
+                    }
                     paused = false;
                     log.info("Bookdrop monitoring resumed.");
                 } catch (IOException e) {
@@ -158,6 +162,14 @@ public class BookdropMonitoringService implements SmartLifecycle {
         } finally {
             monitorLock.unlock();
         }
+    }
+
+    private void registerDirectory(Path dir) throws IOException {
+        WatchKey key = dir.register(watchService,
+                StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_DELETE);
+        watchKeys.put(key, dir);
+        log.debug("Registered watch for: {}", dir);
     }
 
     private void processEvents() {
@@ -185,6 +197,12 @@ public class BookdropMonitoringService implements SmartLifecycle {
                 return;
             }
 
+            Path watchedDir = watchKeys.get(key);
+            if (watchedDir == null) {
+                key.reset();
+                continue;
+            }
+
             for (WatchEvent<?> event : key.pollEvents()) {
                 WatchEvent.Kind<?> kind = event.kind();
 
@@ -194,13 +212,18 @@ public class BookdropMonitoringService implements SmartLifecycle {
                 }
 
                 Path context = (Path) event.context();
-                Path fullPath = bookdrop.resolve(context);
+                Path fullPath = watchedDir.resolve(context);
 
                 log.info("Detected {} event on: {}", kind.name(), fullPath);
 
                 if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                     if (Files.isDirectory(fullPath)) {
-                        log.info("New directory detected, scanning recursively: {}", fullPath);
+                        log.info("New directory detected, registering watch and scanning: {}", fullPath);
+                        try {
+                            registerDirectory(fullPath);
+                        } catch (IOException e) {
+                            log.warn("Failed to register watch for new directory: {}", fullPath, e);
+                        }
                         try (Stream<Path> pathStream = Files.walk(fullPath)) {
                             pathStream
                                     .filter(Files::isRegularFile)
@@ -231,8 +254,8 @@ public class BookdropMonitoringService implements SmartLifecycle {
 
             boolean valid = key.reset();
             if (!valid) {
-                log.warn("WatchKey is no longer valid");
-                break;
+                watchKeys.remove(key);
+                log.warn("WatchKey became invalid for: {}", watchedDir);
             }
         }
     }
