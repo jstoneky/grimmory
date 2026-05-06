@@ -46,27 +46,36 @@ jobs:
             has_upstream_changes=true
           fi
 
-          if [ "${{ inputs.force_publish }}" = "true" ] || [ "$has_upstream_changes" = "true" ]; then
+          force_publish="${{ inputs.force_publish }}"
+
+          # force_publish bypasses the merge entirely — just ship current HEAD.
+          # Otherwise: only merge/publish when upstream has actually moved.
+          if [ "$force_publish" = "true" ]; then
+            merge=false
+            publish=true
+          elif [ "$has_upstream_changes" = "true" ]; then
+            merge=true
             publish=true
           else
+            merge=false
             publish=false
           fi
 
-          echo "has_upstream_changes=$has_upstream_changes" >> "$GITHUB_OUTPUT"
+          echo "merge=$merge" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
 
       - name: Merge upstream main
-        if: steps.check.outputs.has_upstream_changes == 'true'
+        if: steps.check.outputs.merge == 'true'
         run: git merge upstream/main --no-edit
 
       - name: Fix Flyway version collisions
-        if: steps.check.outputs.has_upstream_changes == 'true'
+        if: steps.check.outputs.merge == 'true'
         run: |
           chmod +x .github/scripts/renumber-migrations.sh
           .github/scripts/renumber-migrations.sh
 
       - name: Commit renumbered migrations (if any)
-        if: steps.check.outputs.has_upstream_changes == 'true'
+        if: steps.check.outputs.merge == 'true'
         run: |
           if ! git diff --cached --quiet; then
             git commit --amend --no-edit
@@ -127,7 +136,7 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Push merged branch
-        if: steps.check.outputs.has_upstream_changes == 'true'
+        if: steps.check.outputs.merge == 'true'
         run: git push origin feature/acquisition
 
       - name: Set up Docker Buildx
