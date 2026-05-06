@@ -40,5 +40,6 @@ public class UserUpdateRequest {
         private boolean canBulkResetBookloreReadProgress;
         private boolean canBulkResetKoReaderReadProgress;
         private boolean canBulkResetBookReadStatus;
+        private boolean canManageAcquisition;
     }
 }

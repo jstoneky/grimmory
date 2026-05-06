@@ -225,6 +225,14 @@ public enum UserPermission {
             UserUpdateRequest.Permissions::isCanBulkResetBookReadStatus,
             UserPermissionsEntity::isPermissionBulkResetBookReadStatus,
             UserPermissionsEntity::setPermissionBulkResetBookReadStatus
+    ),
+    CAN_MANAGE_ACQUISITION(
+            "Manage acquisition",
+            BookLoreUser.UserPermissions::isCanManageAcquisition,
+            BookLoreUser.UserPermissions::setCanManageAcquisition,
+            UserUpdateRequest.Permissions::isCanManageAcquisition,
+            UserPermissionsEntity::isPermissionManageAcquisition,
+            UserPermissionsEntity::setPermissionManageAcquisition
     );
 
     private final String description;

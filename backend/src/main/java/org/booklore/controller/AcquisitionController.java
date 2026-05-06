@@ -40,26 +40,26 @@ public class AcquisitionController {
     }
 
     @PostMapping("/indexers")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<IndexerDTO> createIndexer(@RequestBody IndexerDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionConfigService.createIndexer(dto));
     }
 
     @PutMapping("/indexers/{id}")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<IndexerDTO> updateIndexer(@PathVariable Long id, @RequestBody IndexerDTO dto) {
         return ResponseEntity.ok(acquisitionConfigService.updateIndexer(id, dto));
     }
 
     @DeleteMapping("/indexers/{id}")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Void> deleteIndexer(@PathVariable Long id) {
         acquisitionConfigService.deleteIndexer(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/indexers/{id}/test")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<ConnectionTestResult> testIndexer(@PathVariable Long id) {
         return ResponseEntity.ok(acquisitionConfigService.testIndexerConnection(id));
     }
@@ -72,26 +72,26 @@ public class AcquisitionController {
     }
 
     @PostMapping("/clients")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<ClientDTO> createClient(@RequestBody ClientDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionConfigService.createClient(dto));
     }
 
     @PutMapping("/clients/{id}")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @RequestBody ClientDTO dto) {
         return ResponseEntity.ok(acquisitionConfigService.updateClient(id, dto));
     }
 
     @DeleteMapping("/clients/{id}")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
         acquisitionConfigService.deleteClient(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/clients/{id}/test")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<ConnectionTestResult> testClient(@PathVariable Long id) {
         return ResponseEntity.ok(acquisitionConfigService.testClientConnection(id));
     }
@@ -121,7 +121,7 @@ public class AcquisitionController {
     // ─── Wanted Books ─────────────────────────────────────────────────────────
 
     @PostMapping("/wanted")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<WantedBookDTO> addToWanted(@RequestBody AddToWantedRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionService.addToWanted(request));
     }
@@ -132,14 +132,14 @@ public class AcquisitionController {
     }
 
     @DeleteMapping("/wanted/{id}")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Void> removeWanted(@PathVariable Long id) {
         acquisitionService.removeWanted(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/wanted/{id}/search")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Void> triggerSearch(@PathVariable Long id) {
         acquisitionService.triggerSearch(id);
         return ResponseEntity.accepted().build();
@@ -153,7 +153,7 @@ public class AcquisitionController {
     // ─── Jobs ─────────────────────────────────────────────────────────────────
 
     @PostMapping("/jobs/run-now")
-    @PreAuthorize("@securityUtil.isAdmin()")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Void> runNow() {
         bookAcquisitionScheduler.triggerNow();
         return ResponseEntity.accepted().build();

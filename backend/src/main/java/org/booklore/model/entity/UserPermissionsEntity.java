@@ -130,4 +130,8 @@ public class UserPermissionsEntity {
     @Column(name = "permission_bulk_reset_book_read_status", nullable = false)
     @Builder.Default
     private boolean permissionBulkResetBookReadStatus = false;
+
+    @Column(name = "permission_manage_acquisition", nullable = false)
+    @Builder.Default
+    private boolean permissionManageAcquisition = false;
 }

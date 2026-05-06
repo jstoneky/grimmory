@@ -275,6 +275,13 @@ export class UserManagementComponent implements OnInit {
     return count;
   }
 
+  getAcquisitionPermissionsCount(user: User): number {
+    const permissions = user.permissions;
+    let count = 0;
+    if (permissions.canManageAcquisition) count++;
+    return count;
+  }
+
   getPermissionLevel(count: number, total: number): string {
     if (count === 0) return 'none';
     const ratio = count / total;
@@ -325,6 +332,7 @@ export class UserManagementComponent implements OnInit {
       user.permissions.canBulkResetBookloreReadProgress = true;
       user.permissions.canBulkResetKoReaderReadProgress = true;
       user.permissions.canBulkResetBookReadStatus = true;
+      user.permissions.canManageAcquisition = true;
     }
   }
 

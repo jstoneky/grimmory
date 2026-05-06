@@ -351,6 +351,7 @@ export interface User {
     canBulkResetBookloreReadProgress?: boolean;
     canBulkResetKoReaderReadProgress?: boolean;
     canBulkResetBookReadStatus?: boolean;
+    canManageAcquisition?: boolean;
   };
   userSettings: UserSettings;
   provisioningMethod?: 'LOCAL' | 'OIDC' | 'REMOTE';

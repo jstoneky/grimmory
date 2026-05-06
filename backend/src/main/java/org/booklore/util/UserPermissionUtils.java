@@ -28,6 +28,7 @@ public class UserPermissionUtils {
             case MANAGE_ICONS -> perms.isPermissionManageIcons();
             case MANAGE_FONTS -> perms.isPermissionManageFonts();
             case MANAGE_GLOBAL_PREFERENCES -> perms.isPermissionManageGlobalPreferences();
+            case MANAGE_ACQUISITION -> perms.isPermissionManageAcquisition();
             case DEMO_USER -> perms.isPermissionDemoUser();
         };
     }
@@ -52,6 +53,7 @@ public class UserPermissionUtils {
             case MANAGE_ICONS -> perms.isCanManageIcons();
             case MANAGE_FONTS -> perms.isCanManageFonts();
             case MANAGE_GLOBAL_PREFERENCES -> perms.isCanManageGlobalPreferences();
+            case MANAGE_ACQUISITION -> perms.isCanManageAcquisition();
             case DEMO_USER -> perms.isDemoUser();
         };
     }

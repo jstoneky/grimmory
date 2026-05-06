@@ -56,6 +56,7 @@ public class BookLoreUser {
         private boolean canBulkResetBookloreReadProgress;
         private boolean canBulkResetKoReaderReadProgress;
         private boolean canBulkResetBookReadStatus;
+        private boolean canManageAcquisition;
     }
 
     @Data
