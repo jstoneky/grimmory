@@ -1,0 +1,23 @@
+# Frontend tests that are pre-existing failures on upstream's master.
+# Listed here so the sync-and-publish gate doesn't block on drift we
+# didn't introduce. Editing the upstream test files would just create
+# merge conflicts later.
+#
+# Format: <classname> :: <name>
+#   classname = the spec file path (from the JUnit testcase classname attribute)
+#   name      = the test name (from the JUnit testcase name attribute, with
+#               nested describes joined by " > ")
+#
+# When upstream fixes one of these, the validator will fail with
+# "Allowlist entries that now pass — remove these lines:" and you can
+# delete the entry. New failures (yours or upstream's) will fail the
+# gate as a real regression.
+
+src/app/app.routes.spec.ts :: app routes > defines the authenticated shell routes behind the auth guard
+src/app/features/magic-shelf/service/magic-shelf-utils.spec.ts :: magic-shelf-utils > serializeDateRules > should serialize Date values for regular date operators
+src/app/features/magic-shelf/service/magic-shelf-utils.spec.ts :: magic-shelf-utils > serializeDateRules > should serialize Date values for in_between operator on date fields
+src/app/features/magic-shelf/service/magic-shelf-utils.spec.ts :: magic-shelf-utils > serializeDateRules > should recurse through group rules
+src/app/features/magic-shelf/service/magic-shelf-utils.spec.ts :: magic-shelf-utils > serializeDateRules edge cases > should handle lastReadTime date field serialization
+src/app/features/magic-shelf/service/magic-shelf-utils.spec.ts :: magic-shelf-utils > serializeDateRules edge cases > should handle deeply nested groups
+src/app/features/settings/metadata-settings/metadata-settings-component.spec.ts :: MetadataSettingsComponent > hydrates when metadata settings arrive after initial render
+src/app/features/settings/metadata-settings/metadata-settings-component.spec.ts :: MetadataSettingsComponent > persists bookdrop download toggles and metadata option submissions

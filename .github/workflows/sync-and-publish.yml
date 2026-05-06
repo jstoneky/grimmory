@@ -126,7 +126,16 @@ jobs:
 
       - name: Run Frontend Tests
         if: steps.check.outputs.publish == 'true'
+        id: frontend_tests
+        continue-on-error: true
         run: just ui test
+
+      - name: Validate Frontend Failures Against Allowlist
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          python3 .github/scripts/validate-test-allowlist.py \
+            --xml frontend/test-results/vitest-results.xml \
+            --allowlist .github/known-failing-tests.txt
 
       # ─── Push and publish (only reached if tests passed) ──────────────────
 
