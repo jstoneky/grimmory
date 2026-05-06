@@ -3,7 +3,13 @@ name: Sync upstream and publish image
 on:
   schedule:
     - cron: '0 4 * * *'   # 4 AM UTC nightly
-  workflow_dispatch:        # allow manual trigger
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Publish image even when there are no pending upstream changes'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -31,27 +37,36 @@ jobs:
           git remote add upstream https://github.com/grimmory-tools/grimmory.git
           git fetch upstream main
 
-      - name: Check for upstream changes
+      - name: Decide whether to merge and publish
         id: check
         run: |
           if git merge-base --is-ancestor upstream/main HEAD; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+            has_upstream_changes=false
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            has_upstream_changes=true
           fi
 
+          if [ "${{ inputs.force_publish }}" = "true" ] || [ "$has_upstream_changes" = "true" ]; then
+            publish=true
+          else
+            publish=false
+          fi
+
+          echo "has_upstream_changes=$has_upstream_changes" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
       - name: Merge upstream main
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.has_upstream_changes == 'true'
         run: git merge upstream/main --no-edit
 
       - name: Fix Flyway version collisions
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.has_upstream_changes == 'true'
         run: |
           chmod +x .github/scripts/renumber-migrations.sh
           .github/scripts/renumber-migrations.sh
 
       - name: Commit renumbered migrations (if any)
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.has_upstream_changes == 'true'
         run: |
           if ! git diff --cached --quiet; then
             git commit --amend --no-edit
@@ -60,20 +75,20 @@ jobs:
       # ─── Test gate: backend + frontend must pass before push/publish ──────
 
       - name: Install just
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: taiki-e/install-action@5f57d6cb7cd20b14a8a27f522884c4bc8a187458 # v2.75.19
         with:
           tool: just
 
       - name: Set Up JDK 25
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           java-version: '25'
           distribution: 'temurin'
 
       - name: Install libarchive (NightCompress dep)
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install libarchive-dev --yes
@@ -81,46 +96,46 @@ jobs:
           sudo cp /usr/lib/x86_64-linux-gnu/libarchive.* /usr/java/packages/lib/
 
       - name: Run Backend Tests
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         run: just api test
 
       - name: Set Up Node.js
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: '24'
 
       - name: Enable Corepack
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         run: |
           corepack enable
           corepack yarn --version
 
       - name: Install Frontend Dependencies
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         run: just ui install-ci
 
       - name: Run Frontend Tests
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         run: just ui test
 
       # ─── Push and publish (only reached if tests passed) ──────────────────
 
-      - name: Resolve merged SHA
-        if: steps.check.outputs.changed == 'true'
+      - name: Resolve current SHA
+        if: steps.check.outputs.publish == 'true'
         id: head
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Push merged branch
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.has_upstream_changes == 'true'
         run: git push origin feature/acquisition
 
       - name: Set up Docker Buildx
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -128,7 +143,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.publish == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
