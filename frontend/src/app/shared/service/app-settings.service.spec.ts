@@ -66,6 +66,8 @@ function buildAppSettings(overrides: Partial<AppSettings> = {}): AppSettings {
     oidcGroupSyncMode: null,
     oidcForceOnlyMode: publicSettings.oidcForceOnlyMode,
     diskType: 'LOCAL',
+    bookdropAutoImportLibraryId: null,
+    bookdropAutoImportPathId: null,
     ...overrides,
   };
 }

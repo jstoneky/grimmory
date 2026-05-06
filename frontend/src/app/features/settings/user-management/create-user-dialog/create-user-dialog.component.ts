@@ -81,6 +81,7 @@ export class CreateUserDialogComponent implements OnInit {
       permissionBulkResetGrimmoryReadProgress: [false],
       permissionBulkResetKoReaderReadProgress: [false],
       permissionBulkResetBookReadStatus: [false],
+      permissionManageAcquisition: [false],
     }, {validators: [passwordMatchValidator('password', 'confirmPassword')]});
 
     this.userForm.get('permissionAdmin')?.valueChanges

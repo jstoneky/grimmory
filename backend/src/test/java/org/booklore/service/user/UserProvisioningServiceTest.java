@@ -158,7 +158,23 @@ class UserProvisioningServiceTest {
         assertThat(perms.isPermissionSyncKobo()).isFalse();
         assertThat(perms.isPermissionManageMetadataConfig()).isFalse();
         assertThat(perms.isPermissionAccessBookdrop()).isFalse();
+        assertThat(perms.isPermissionManageAcquisition()).isFalse();
         assertThat(perms.isPermissionAdmin()).isFalse();
+    }
+
+    @Test
+    void provisionOidcUser_appliesManageAcquisitionFromDefaults() {
+        provisionDetails.setDefaultPermissions(List.of("permissionManageAcquisition"));
+
+        userProvisioningService.provisionOidcUser(
+                "jdoe", "jdoe@example.com", "John Doe",
+                "sub-123", "https://issuer.example.com", null,
+                provisionDetails);
+
+        verify(userRepository).save(userCaptor.capture());
+        UserPermissionsEntity perms = userCaptor.getValue().getPermissions();
+
+        assertThat(perms.isPermissionManageAcquisition()).isTrue();
     }
 
     @Test

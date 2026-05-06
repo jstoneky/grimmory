@@ -35,6 +35,7 @@ public class AcquisitionController {
     // ─── Indexers ────────────────────────────────────────────────────────────
 
     @GetMapping("/indexers")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<List<IndexerDTO>> getIndexers() {
         return ResponseEntity.ok(acquisitionConfigService.getIndexers());
     }
@@ -67,6 +68,7 @@ public class AcquisitionController {
     // ─── Clients ─────────────────────────────────────────────────────────────
 
     @GetMapping("/clients")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<List<ClientDTO>> getClients() {
         return ResponseEntity.ok(acquisitionConfigService.getClients());
     }
@@ -99,6 +101,7 @@ public class AcquisitionController {
     // ─── Book Discovery ───────────────────────────────────────────────────────
 
     @GetMapping("/search")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<List<BookMetadata>> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String isbn,
@@ -114,6 +117,7 @@ public class AcquisitionController {
     }
 
     @GetMapping("/library-isbns")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<Set<String>> getLibraryIsbn13s() {
         return ResponseEntity.ok(bookDiscoveryService.getLibraryIsbn13s());
     }
@@ -127,6 +131,7 @@ public class AcquisitionController {
     }
 
     @GetMapping("/wanted")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<List<WantedBookDTO>> getWantedBooks() {
         return ResponseEntity.ok(acquisitionService.getWantedBooks());
     }
@@ -146,6 +151,7 @@ public class AcquisitionController {
     }
 
     @GetMapping("/wanted/{id}/history")
+    @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
     public ResponseEntity<List<JobHistoryDTO>> getJobHistory(@PathVariable Long id) {
         return ResponseEntity.ok(acquisitionService.getJobHistory(id));
     }

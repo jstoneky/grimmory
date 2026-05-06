@@ -295,7 +295,7 @@ export class AppMenuComponent {
   readonly acquisitionMenu = computed<NavItem[]>(() => {
     this.activeLang();
     const user = this.currentUser();
-    if (!user?.permissions?.admin) return [];
+    if (!user?.permissions?.admin && !user?.permissions?.canManageAcquisition) return [];
 
     return [
       {

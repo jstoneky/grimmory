@@ -350,6 +350,66 @@ class OidcGroupMappingServiceTest {
     }
 
     @Test
+    void syncUserGroups_onLogin_appliesManageAcquisition() {
+        var perms = new UserPermissionsEntity();
+        var user = createMockedUser(perms);
+
+        var mapping = createMapping(false, "[\"permissionManageAcquisition\"]", "[]");
+        setupSyncMocks("ON_LOGIN", List.of("group1"), List.of(mapping));
+
+        service.syncUserGroups(user, List.of("group1"));
+
+        assertThat(perms.isPermissionManageAcquisition()).isTrue();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void syncUserGroups_onLogin_clearsManageAcquisitionWhenAbsent() {
+        var perms = new UserPermissionsEntity();
+        perms.setPermissionManageAcquisition(true);
+        var user = createMockedUser(perms);
+
+        var mapping = createMapping(false, "[\"permissionUpload\"]", "[]");
+        setupSyncMocks("ON_LOGIN", List.of("group1"), List.of(mapping));
+
+        service.syncUserGroups(user, List.of("group1"));
+
+        assertThat(perms.isPermissionManageAcquisition()).isFalse();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void syncUserGroups_onLoginAdditive_addsManageAcquisitionWithoutClearingExisting() {
+        var perms = new UserPermissionsEntity();
+        perms.setPermissionDownload(true);
+        var user = createMockedUser(perms);
+
+        var mapping = createMapping(false, "[\"permissionManageAcquisition\"]", "[]");
+        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), List.of(mapping));
+
+        service.syncUserGroups(user, List.of("group1"));
+
+        assertThat(perms.isPermissionManageAcquisition()).isTrue();
+        assertThat(perms.isPermissionDownload()).isTrue();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void syncUserGroups_onLoginAdditive_doesNotClearManageAcquisitionWhenAbsent() {
+        var perms = new UserPermissionsEntity();
+        perms.setPermissionManageAcquisition(true);
+        var user = createMockedUser(perms);
+
+        var mapping = createMapping(false, "[\"permissionUpload\"]", "[]");
+        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), List.of(mapping));
+
+        service.syncUserGroups(user, List.of("group1"));
+
+        assertThat(perms.isPermissionManageAcquisition()).isTrue();
+        verify(userRepository).save(user);
+    }
+
+    @Test
     void syncUserGroups_unknownMode_doesNothing() {
         var user = mock(BookLoreUserEntity.class);
         var perms = new UserPermissionsEntity();

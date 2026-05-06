@@ -10,4 +10,6 @@ import java.util.List;
 public interface AcquisitionClientRepository extends JpaRepository<AcquisitionClientEntity, Long> {
 
     List<AcquisitionClientEntity> findByEnabledTrue();
+
+    boolean existsByEnabledTrue();
 }

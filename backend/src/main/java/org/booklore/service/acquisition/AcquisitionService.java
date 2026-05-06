@@ -125,6 +125,24 @@ public class AcquisitionService {
 
     @Transactional
     public AcquisitionResult searchAndDispatch(WantedBookEntity wanted) {
+        boolean hasIndexer = indexerRepository.existsByEnabledTrue();
+        boolean hasClient = clientRepository.existsByEnabledTrue();
+        if (!hasIndexer || !hasClient) {
+            String reason;
+            if (!hasIndexer && !hasClient) {
+                reason = "No indexer or download client configured";
+            } else if (!hasIndexer) {
+                reason = "No indexer configured";
+            } else {
+                reason = "No download client configured";
+            }
+            wanted.setLastCheckedAt(Instant.now());
+            wantedBookRepository.save(wanted);
+            saveConfigSkipHistory(wanted, reason);
+            log.warn("Acquisition pre-flight failed for wanted book id={}: {}", wanted.getId(), reason);
+            return AcquisitionResult.notFound(wanted.getId());
+        }
+
         wanted.setStatus(WantedBookStatus.SEARCHING);
         wanted.setLastCheckedAt(Instant.now());
         wantedBookRepository.save(wanted);
@@ -213,6 +231,16 @@ public class AcquisitionService {
                 .sorted((a, b) -> Integer.compare((int) b[1], (int) a[1]))
                 .limit(3)
                 .forEach(pair -> saveHistory(wanted, (NzbResult) pair[0], (int) pair[1], JobHistoryStatus.SKIPPED));
+    }
+
+    private void saveConfigSkipHistory(WantedBookEntity wanted, String reason) {
+        AcquisitionJobHistoryEntity history = AcquisitionJobHistoryEntity.builder()
+                .wantedBook(wanted)
+                .nzbTitle(reason)
+                .status(JobHistoryStatus.SKIPPED)
+                .attemptedAt(Instant.now())
+                .build();
+        historyRepository.save(history);
     }
 
     private void saveHistory(WantedBookEntity wanted, NzbResult result,

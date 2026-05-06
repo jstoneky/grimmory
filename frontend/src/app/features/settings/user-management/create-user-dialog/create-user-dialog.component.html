@@ -469,6 +469,24 @@
             </div>
           </div>
 
+          <div class="permission-group">
+            <h4 class="permission-group-title">
+              <i class="pi pi-search"></i>
+              {{ t('permGroups.acquisition') }}
+            </h4>
+            <div class="permission-group-items">
+              <div class="permission-item">
+                <p-checkbox formControlName="permissionManageAcquisition" [binary]="true" inputId="perm-manage-acquisition"></p-checkbox>
+                <label for="perm-manage-acquisition" class="permission-label">
+                  <div class="permission-icon-wrapper">
+                    <i class="pi pi-search permission-icon"></i>
+                  </div>
+                  <span class="permission-name">{{ t('perms.manageAcquisition') }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div class="permission-group full-width">
             <h4 class="permission-group-title">
               <i class="pi pi-shield"></i>

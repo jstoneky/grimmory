@@ -156,6 +156,7 @@ public class OidcGroupMappingService {
             perms.setPermissionBulkResetBookloreReadProgress(permissions.contains("permissionBulkResetBookloreReadProgress"));
             perms.setPermissionBulkResetKoReaderReadProgress(permissions.contains("permissionBulkResetKoReaderReadProgress"));
             perms.setPermissionBulkResetBookReadStatus(permissions.contains("permissionBulkResetBookReadStatus"));
+            perms.setPermissionManageAcquisition(permissions.contains("permissionManageAcquisition"));
         } else {
             if (isAdmin) perms.setPermissionAdmin(true);
             if (permissions.contains("permissionUpload")) perms.setPermissionUpload(true);
@@ -184,6 +185,7 @@ public class OidcGroupMappingService {
             if (permissions.contains("permissionBulkResetBookloreReadProgress")) perms.setPermissionBulkResetBookloreReadProgress(true);
             if (permissions.contains("permissionBulkResetKoReaderReadProgress")) perms.setPermissionBulkResetKoReaderReadProgress(true);
             if (permissions.contains("permissionBulkResetBookReadStatus")) perms.setPermissionBulkResetBookReadStatus(true);
+            if (permissions.contains("permissionManageAcquisition")) perms.setPermissionManageAcquisition(true);
         }
     }
 }

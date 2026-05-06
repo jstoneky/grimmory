@@ -4,6 +4,10 @@
   <div class="wanted-header">
     <p class="wanted-title">Wanted Books</p>
     <div class="wanted-toolbar">
+      <label for="my-wanted-books" class="my-books-toggle" style="display:flex; align-items:center; gap:0.5rem; margin-right:0.75rem; cursor:pointer;">
+        <p-checkbox [(ngModel)]="myBooksOnly" [binary]="true" inputId="my-wanted-books"></p-checkbox>
+        <span>Books I added</span>
+      </label>
       <button class="topbar-item" (click)="openManualAddDialog()"
               pTooltip="Manual Add" tooltipPosition="top" aria-label="Manual Add" type="button">
         <i class="pi pi-plus"></i>
@@ -19,7 +23,26 @@
     </div>
   </div>
 
-  <p-table [value]="wantedBooks" [loading]="loading">
+  @if (!hasEnabledIndexer || !hasEnabledClient) {
+    <div class="config-warning" role="status" style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.875rem 1rem; margin-bottom:1rem; background:var(--p-yellow-50, #fffbeb); border:1px solid var(--p-yellow-300, #fcd34d); border-radius:6px; color:var(--p-yellow-800, #92400e);">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true" style="font-size:1.25rem; margin-top:0.125rem;"></i>
+      <div style="flex:1;">
+        <div style="font-weight:600; margin-bottom:0.25rem;">Acquisition not fully configured</div>
+        <div style="font-size:0.875rem; line-height:1.4;">
+          @if (!hasEnabledIndexer && !hasEnabledClient) {
+            No enabled indexer or download client. Searches will be skipped until both are configured.
+          } @else if (!hasEnabledIndexer) {
+            No enabled indexer. Searches will be skipped until you add one.
+          } @else {
+            No enabled download client. Found NZBs cannot be sent for download until you configure SABnzbd.
+          }
+          <a routerLink="/settings" [queryParams]="{tab: 'acquisition'}" style="margin-left:0.25rem; text-decoration:underline;">Open settings</a>
+        </div>
+      </div>
+    </div>
+  }
+
+  <p-table [value]="filteredWantedBooks" [loading]="loading">
     <ng-template pTemplate="header">
       <tr>
         <th scope="col" style="width:40px;"></th>

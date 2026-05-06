@@ -36,6 +36,7 @@ export interface WantedBook {
   thumbnailUrl?: string;
   status: 'WANTED' | 'SEARCHING' | 'FOUND' | 'DOWNLOADING' | 'DOWNLOADED' | 'IMPORTED' | 'NOT_FOUND' | 'FAILED' | 'FAILED_PERMANENT';
   lastCheckedAt?: string;
+  addedById?: number;
   addedAt: string;
 }
 

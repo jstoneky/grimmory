@@ -267,6 +267,12 @@ The scheduler runs nightly at 3 AM and retries `Not Found` books up to 5 times b
 3. Add a SABnzbd download client (URL + API key + category)
 4. Set the SABnzbd category's completed download folder to match your BookDrop path
 
+Until both an enabled indexer and an enabled download client are configured, scheduled and manual searches are skipped — wanted books stay in `WANTED` and the reason is recorded in each book's job history.
+
+### Acquisition Permissions
+
+The Discover and Wanted Books pages are gated by a `Discover & Wanted Books` permission. Admins always have access; for non-admin users, grant the permission from **Settings → Users → Edit user → Acquisition**. The same permission also gates the acquisition API endpoints.
+
 ```yaml
 # docker-compose.yml — map both volumes to the same path
 volumes:

@@ -1,5 +1,6 @@
 import {ChangeDetectorRef, Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {DatePipe} from '@angular/common';
+import {RouterLink} from '@angular/router';
 import {Button} from 'primeng/button';
 import {TableModule} from 'primeng/table';
 import {Tag} from 'primeng/tag';
@@ -13,6 +14,8 @@ import {Message} from '@stomp/stompjs';
 import {Subscription} from 'rxjs';
 import {AcquisitionService, WantedBook, JobHistoryItem, AddToWantedRequest} from '../../../../core/services/acquisition.service';
 import {RxStompService} from '../../../../shared/websocket/rx-stomp.service';
+import {UserService} from '../../../settings/user-management/user.service';
+import {Checkbox} from 'primeng/checkbox';
 
 @Component({
   selector: 'app-wanted-books',
@@ -27,6 +30,8 @@ import {RxStompService} from '../../../../shared/websocket/rx-stomp.service';
     Dialog,
     InputText,
     Tooltip,
+    Checkbox,
+    RouterLink,
   ],
   providers: [MessageService],
   templateUrl: './wanted-books.component.html',
@@ -38,9 +43,13 @@ export class WantedBooksComponent implements OnInit, OnDestroy {
   private readonly messageService = inject(MessageService);
   private readonly rxStompService = inject(RxStompService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly userService = inject(UserService);
 
   wantedBooks: WantedBook[] = [];
+  myBooksOnly = false;
   loading = false;
+  hasEnabledIndexer = true;
+  hasEnabledClient = true;
   searchingIds = new Set<number>();
   expandedRows: Record<number, boolean> = {};
   jobHistory: Record<number, JobHistoryItem[]> = {};
@@ -54,6 +63,7 @@ export class WantedBooksComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadWantedBooks();
+    this.checkAcquisitionConfig();
     this.wsSubscription = this.rxStompService.watch('/topic/acquisition').subscribe((message: Message) => {
       try {
         const notification = JSON.parse(message.body);
@@ -78,6 +88,36 @@ export class WantedBooksComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSubscription?.unsubscribe();
+  }
+
+  checkAcquisitionConfig(): void {
+    this.acquisitionService.getIndexers().subscribe({
+      next: (indexers) => {
+        this.hasEnabledIndexer = indexers.some(i => i.enabled);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.hasEnabledIndexer = false;
+        this.cdr.detectChanges();
+      }
+    });
+    this.acquisitionService.getClients().subscribe({
+      next: (clients) => {
+        this.hasEnabledClient = clients.some(c => c.enabled);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.hasEnabledClient = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  get filteredWantedBooks(): WantedBook[] {
+    if (!this.myBooksOnly) return this.wantedBooks;
+    const myId = this.userService.currentUser()?.id;
+    if (myId == null) return this.wantedBooks;
+    return this.wantedBooks.filter(b => b.addedById === myId);
   }
 
   loadWantedBooks(): void {

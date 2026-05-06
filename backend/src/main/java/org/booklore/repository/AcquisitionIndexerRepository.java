@@ -10,4 +10,6 @@ import java.util.List;
 public interface AcquisitionIndexerRepository extends JpaRepository<AcquisitionIndexerEntity, Long> {
 
     List<AcquisitionIndexerEntity> findByEnabledTrueOrderByPriorityAsc();
+
+    boolean existsByEnabledTrue();
 }

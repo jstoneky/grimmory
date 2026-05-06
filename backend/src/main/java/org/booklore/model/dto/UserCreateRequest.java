@@ -51,6 +51,7 @@ public class UserCreateRequest {
     private boolean permissionBulkResetBookloreReadProgress;
     private boolean permissionBulkResetKoReaderReadProgress;
     private boolean permissionBulkResetBookReadStatus;
+    private boolean permissionManageAcquisition;
 
     private Set<Long> selectedLibraries;
 }
