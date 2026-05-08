@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.springframework.boot.gradle.tasks.bundling.BootJar
@@ -31,6 +32,11 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 val useLocalLibs = providers.gradleProperty("useLocalLibs").isPresent
+val mainSourceSet = the<SourceSetContainer>()["main"]
+val openApiOutputDir = layout.buildDirectory.dir("openapi")
+val openApiOutputFile = openApiOutputDir.map { it.file("grimmory-openapi.json") }
+val openApiLogFile = openApiOutputDir.map { it.file("export-openapi.log") }
+val openApiExportScript = layout.projectDirectory.file("scripts/export-openapi.sh")
 
 repositories {
     if (useLocalLibs) mavenLocal()
@@ -90,6 +96,8 @@ configurations {
     }
 }
 
+val openApiExportRuntimeOnly by configurations.creating
+
 dependencies {
     // --- Spring Boot ---
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -100,7 +108,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-configuration-processor")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.9")
 
     // --- Reactive Streams ---
     implementation("io.projectreactor:reactor-core")
@@ -110,16 +118,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-mysql:12.4.0")
 
-    // --- Security & Authentication ---
-    val jjwtVersion = "0.13.0"
-    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
-
     // --- Lombok (For Clean Code) ---
-    val lombokVersion = "1.18.46"
-    compileOnly("org.projectlombok:lombok:$lombokVersion")
-    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+    compileOnly("org.projectlombok:lombok:1.18.46")
+    annotationProcessor("org.projectlombok:lombok:1.18.46")
 
     // --- Book & Image Processing ---
     val pdfium4jVersion = if (useLocalLibs) "+" else "0.16.0"
@@ -150,9 +151,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.22.2")
 
     // --- Mapping (DTOs & Entities) ---
-    val mapstructVersion = "1.6.3"
-    implementation("org.mapstruct:mapstruct:$mapstructVersion")
-    annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 
     // --- API Documentation ---
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:3.0.3")
@@ -190,15 +190,10 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testRuntimeOnly("com.h2database:h2")
+    add(openApiExportRuntimeOnly.name, "com.h2database:h2")
 
     // PDFBox for test PDF creation only (production code uses PDFium4j)
     testImplementation("org.apache.pdfbox:pdfbox:3.0.7")
-
-    // MockWebServer for HTTP stub-based acquisition tests (no Jetty dependency, avoids Jetty version conflicts)
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-
-    // Spring Security Test for @WithMockUser and csrf() in controller tests
-    testImplementation("org.springframework.security:spring-security-test")
 }
 
 hibernate {
@@ -247,4 +242,44 @@ tasks.named<BootRun>("bootRun") {
 
 tasks.named<BootJar>("bootJar") {
     mainClass.set("org.booklore.BookloreApplication")
+}
+
+tasks.register("exportOpenApi") {
+    group = "documentation"
+    description = "Boot the backend with the openapi-export profile and write build/openapi/grimmory-openapi.json."
+    dependsOn(tasks.named("classes"))
+    inputs.files(mainSourceSet.runtimeClasspath, openApiExportRuntimeOnly, openApiExportScript)
+    outputs.file(openApiOutputFile)
+
+    doLast {
+        val outputFile = openApiOutputFile.get().asFile
+        val logFile = openApiLogFile.get().asFile
+        val classpath = files(mainSourceSet.runtimeClasspath, openApiExportRuntimeOnly).asPath
+        val javaExecutable = javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(25))
+        }.get().executablePath.asFile.absolutePath
+
+        val result = ProcessBuilder(
+            "bash",
+            openApiExportScript.asFile.absolutePath,
+            javaExecutable,
+            classpath,
+            outputFile.absolutePath
+        )
+            .directory(project.projectDir)
+            .inheritIO()
+            .apply {
+                environment()["OPENAPI_EXPORT_LOG_FILE"] = logFile.absolutePath
+            }
+            .start()
+
+        val exitCode = result.waitFor()
+        check(exitCode == 0) { "OpenAPI export script failed with exit code $exitCode. See ${logFile.absolutePath}." }
+    }
+}
+
+tasks.register("buildOpenApiArtifacts") {
+    group = "build"
+    description = "Build the backend jar and export build/openapi/grimmory-openapi.json from the openapi-export profile."
+    dependsOn(tasks.named("bootJar"), tasks.named("exportOpenApi"))
 }
