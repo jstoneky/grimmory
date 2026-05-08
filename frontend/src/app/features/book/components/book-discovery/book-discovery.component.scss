@@ -37,12 +37,13 @@
 
 .discover-toolbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
 
   @media (width >= 768px) {
+    flex-wrap: nowrap;
     gap: 1rem;
   }
 }
@@ -81,6 +82,12 @@
   display: block;
   flex: 1;
   min-width: 0;
+
+  @media (width <= 767px) {
+    flex-basis: 100%;
+    order: 99;
+    margin-top: 0.25rem;
+  }
 }
 
 .search-icon {
