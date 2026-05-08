@@ -78,11 +78,9 @@
 
 .search-wrapper {
   position: relative;
-  display: none;
-
-  @media (width >= 768px) {
-    display: block;
-  }
+  display: block;
+  flex: 1;
+  min-width: 0;
 }
 
 .search-icon {
@@ -96,11 +94,16 @@
 }
 
 .search-input {
-  min-width: 22rem;
+  width: 100%;
+  min-width: 0;
   padding-left: 30px;
   height: 2.5rem;
   line-height: 2.5rem;
   font-size: 1rem;
+
+  @media (width >= 768px) {
+    min-width: 22rem;
+  }
 }
 
 .search-clear-btn {
