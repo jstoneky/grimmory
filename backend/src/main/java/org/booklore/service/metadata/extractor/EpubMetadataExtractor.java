@@ -1,5 +1,9 @@
 package org.booklore.service.metadata.extractor;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import org.grimmory.epub4j.archive.EpubContainer;
 import org.grimmory.epub4j.archive.EpubContainers;
 import org.grimmory.epub4j.domain.Book;
@@ -14,13 +18,15 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.booklore.model.dto.BookMetadata;
 import org.booklore.service.metadata.BookLoreMetadata;
-import org.springframework.boot.configurationprocessor.json.JSONException;
-import org.springframework.boot.configurationprocessor.json.JSONObject;
+import org.booklore.util.SecureXmlUtils;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +38,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.function.DoubleConsumer;
+import java.util.function.IntConsumer;
 
 @Slf4j
 @Component
@@ -46,6 +54,8 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
     private static final Pattern ISBN_SEPARATOR_PATTERN = Pattern.compile("[- ]");
 
     private static final Set<Integer> VALID_AGE_RATINGS = Set.of(0, 6, 10, 13, 16, 18, 21);
+
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     static {
         MEDIA_TYPES.addAll(Arrays.asList(MediaTypes.mediaTypes));
@@ -109,8 +119,10 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
 
         // Last resort: scan container for cover-like images
         try (EpubContainer container = EpubContainers.open(epubFile.toPath())) {
-            Document opf = container.parseOpf();
-            String opfName = container.getOpfName();
+            // NOTE: this will moved to org.grimmory.epub4j in the near future
+            // most of the parsing done here, can be safely replaced with methods already existing in epub4j
+            String opfName = findOpfPath(container);
+            Document opf = parseXmlFromContainer(container, opfName);
 
             // Try OPF manifest for cover-image property
             NodeList items = opf.getElementsByTagName("item");
@@ -121,7 +133,7 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
                     String href = URLDecoder.decode(item.getAttribute("href"), StandardCharsets.UTF_8);
                     String fullPath = resolvePath(opfName, href);
                     if (container.exists(fullPath)) {
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
                         container.streamTo(fullPath, baos);
                         return baos.toByteArray();
                     }
@@ -140,7 +152,7 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
                         String decodedHref = URLDecoder.decode(href, StandardCharsets.UTF_8);
                         String fullPath = resolvePath(opfName, decodedHref);
                         if (container.exists(fullPath)) {
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
                             container.streamTo(fullPath, baos);
                             return baos.toByteArray();
                         }
@@ -153,7 +165,7 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
                 String lower = name.toLowerCase();
                 if (lower.contains("cover") && (lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
                         lower.endsWith(".png") || lower.endsWith(".webp"))) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
                     container.streamTo(name, baos);
                     return baos.toByteArray();
                 }
@@ -168,7 +180,8 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
     @Override
     public BookMetadata extractMetadata(File epubFile) {
         try (EpubContainer container = EpubContainers.open(epubFile.toPath())) {
-            Document doc = container.parseOpf();
+            String opfPath = findOpfPath(container);
+            Document doc = parseXmlFromContainer(container, opfPath);
 
             Element metadata = (Element) doc.getElementsByTagNameNS("*", "metadata").item(0);
             if (metadata == null) return null;
@@ -240,16 +253,19 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
                             safeParseInt(content, builderMeta::pageCount);
                         } else if ("calibre:user_metadata:#pagecount".equals(name)) {
                             try {
-                                JSONObject jsonroot = new JSONObject(content);
-                                Object value = jsonroot.opt("#value#");
-                                safeParseInt(String.valueOf(value), builderMeta::pageCount);
-                            } catch (JSONException _) {
+                                JsonNode jsonRoot = OBJECT_MAPPER.readTree(content);
+                                JsonNode valueNode = jsonRoot.get("#value#");
+                                if (valueNode != null && !valueNode.isNull()) {
+                                    safeParseInt(valueNode.asText(), builderMeta::pageCount);
+                                }
+                            } catch (Exception e) {
+                                log.debug("Failed to parse calibre:user_metadata:#pagecount: {}", e.getMessage());
                             }
                         } else if ("calibre:user_metadata".equals(prop)) {
                             try {
-                                extractCalibreUserMetadata(new JSONObject(content), builderMeta, moods, tags);
-                            } catch (JSONException e) {
-                                log.warn("Failed to parse Calibre user_metadata JSON: {}", e.getMessage());
+                                extractCalibreUserMetadata(OBJECT_MAPPER.readTree(content), builderMeta, moods, tags);
+                            } catch (Exception e) {
+                                log.debug("Failed to parse calibre:user_metadata: {}", e.getMessage());
                             }
                         }
 
@@ -425,14 +441,14 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
         }
     }
 
-    private static void safeParseInt(String value, java.util.function.IntConsumer setter) {
+    private static void safeParseInt(String value, IntConsumer setter) {
         try {
             setter.accept(Integer.parseInt(value));
         } catch (NumberFormatException _) {
         }
     }
 
-    private static void safeParseDouble(String value, java.util.function.DoubleConsumer setter) {
+    private static void safeParseDouble(String value, DoubleConsumer setter) {
         try {
             setter.accept(Double.parseDouble(value));
         } catch (NumberFormatException _) {
@@ -445,26 +461,28 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
         }
     }
 
-    private void extractCalibreUserMetadata(JSONObject userMetadata, BookMetadata.BookMetadataBuilder builder,
+    private void extractCalibreUserMetadata(JsonNode userMetadata, BookMetadata.BookMetadataBuilder builder,
                                              Set<String> moodsSet, Set<String> tagsSet) {
-        Iterator<String> keys = userMetadata.keys();
-        while (keys.hasNext()) {
-            String fieldName = keys.next();
+        if (!(userMetadata instanceof ObjectNode objectNode)) {
+            return;
+        }
+        for (Map.Entry<String, JsonNode> field : objectNode.properties()) {
+            String fieldName = field.getKey();
             try {
-                JSONObject fieldObj = userMetadata.optJSONObject(fieldName);
-                if (fieldObj == null) continue;
+                JsonNode fieldObj = field.getValue();
+                if (fieldObj == null || !fieldObj.isObject()) continue;
 
-                Object rawValue = fieldObj.opt("#value#");
-                if (rawValue == null) continue;
+                JsonNode valueNode = fieldObj.get("#value#");
+                if (valueNode == null || valueNode.isNull()) continue;
 
-                String value = String.valueOf(rawValue).trim();
-                if (value.isEmpty() || "null".equals(value)) continue;
 
-                if ("#moods".equals(fieldName)) {
-                    extractSetField(value, moodsSet);
-                } else if ("#extra_tags".equals(fieldName)) {
-                    extractSetField(value, tagsSet);
+                if ("#moods".equals(fieldName) || "#extra_tags".equals(fieldName)) {
+                    String value = valueNode.isArray() ? valueNode.toString() : valueNode.asText().trim();
+                    if (value.isEmpty() || "null".equals(value)) continue;
+                    extractSetField(value, "#moods".equals(fieldName) ? moodsSet : tagsSet);
                 } else {
+                    String value = valueNode.asText().trim();
+                    if (value.isEmpty() || "null".equals(value)) continue;
                     BiConsumer<BookMetadata.BookMetadataBuilder, String> mapper = CALIBRE_FIELD_MAPPINGS.get(fieldName);
                     if (mapper != null) {
                         mapper.accept(builder, value);
@@ -571,6 +589,38 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
         }
     }
 
+    private String findOpfPath(EpubContainer container) throws IOException, ParserConfigurationException, SAXException {
+        String containerXmlPath = "META-INF/container.xml";
+        if (!container.exists(containerXmlPath)) {
+            return "OEBPS/content.opf";
+        }
+
+        Document containerDoc = parseXmlFromContainer(container, containerXmlPath);
+        NodeList rootfiles = containerDoc.getElementsByTagNameNS("urn:oasis:names:tc:opendocument:xmlns:container", "rootfile");
+        if (rootfiles.getLength() == 0) {
+            throw new IOException("No <rootfile> found in container.xml");
+        }
+
+        // EPUB spec §3.5.1: first rootfile is the default rendition
+        String opfPath = ((Element) rootfiles.item(0)).getAttribute("full-path");
+        if (StringUtils.isBlank(opfPath)) {
+            throw new IOException("Empty full-path in container.xml");
+        }
+
+        return URLDecoder.decode(opfPath, StandardCharsets.UTF_8);
+    }
+
+    private Document parseXmlFromContainer(EpubContainer container, String path) throws IOException, ParserConfigurationException, SAXException {
+        if (!container.exists(path)) {
+            throw new IOException("File not found: " + path);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
+        container.streamTo(path, baos);
+
+        return SecureXmlUtils.createSecureDocumentBuilder(true).parse(new ByteArrayInputStream(baos.toByteArray()));
+    }
+
     private String resolvePath(String opfPath, String href) {
         if (href == null || href.isEmpty()) return null;
 
@@ -583,7 +633,7 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
         String combined = basePath + href;
 
         // Normalize path components to handle ".." and "."
-        java.util.LinkedList<String> parts = new java.util.LinkedList<>();
+        LinkedList<String> parts = new LinkedList<>();
         for (String part : combined.split("/")) {
             if ("..".equals(part)) {
                 if (!parts.isEmpty()) parts.removeLast();

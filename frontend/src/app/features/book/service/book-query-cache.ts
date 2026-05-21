@@ -129,3 +129,37 @@ export function patchAppBooksCoverInCache(
     }
   );
 }
+
+export function patchAppBooksMetadataLockInCache(queryClient: QueryClient, bookId: number, allMetadataLocked: boolean): void {
+  // Do not create the legacy full-books cache when only the paginated app-books cache exists.
+  queryClient.setQueryData<Book[]>(BOOKS_QUERY_KEY, current =>
+    current?.map(book =>
+      book.id === bookId
+        ? {
+          ...book,
+          metadata: {
+            ...(book.metadata ?? {bookId}),
+            allMetadataLocked,
+          },
+        }
+        : book
+    ) ?? current
+  );
+
+  queryClient.setQueriesData<InfiniteData<AppPageResponse<AppBookSummary>>>(
+    {queryKey: APP_BOOKS_QUERY_PREFIX},
+    current => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        pages: current.pages.map(page => ({
+          ...page,
+          content: page.content.map(summary =>
+            summary.id === bookId ? {...summary, allMetadataLocked} : summary
+          ),
+        })),
+      };
+    }
+  );
+}

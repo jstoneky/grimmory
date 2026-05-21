@@ -43,17 +43,16 @@
       "save": "Salva",
       "collapseSeries": "Comprimi serie",
       "gridColumns": "Colonne griglia",
-      "gridItemSize": "Dimensione elemento griglia",
       "bookTypeOverlay": "Overlay tipo libro",
       "noBooks": "Questa collezione non ha libri!",
       "failedLibrary": "Impossibile caricare i libri della libreria!",
       "failedShelf": "Impossibile caricare i libri dello scaffale!",
+      "failedBooks": "",
       "activeFilters": "{{ count }} filtri attivi"
     },
     "tooltip": {
       "clearFilters": "Cancella filtri applicati",
       "visibleColumns": "Colonne visibili",
-      "displaySettings": "Impostazioni visualizzazione",
       "selectSorting": "Seleziona ordinamento",
       "toggleView": "Alterna tra vista a griglia e tabella",
       "search": "Cerca",
@@ -611,7 +610,12 @@
   },
   "table": {
     "bookCoverAlt": "Copertina libro",
-    "statusPrefix": "Stato: ",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "Stato: {{ status }}",
     "locked": "Bloccato",
     "unlocked": "Sbloccato",
     "toast": {

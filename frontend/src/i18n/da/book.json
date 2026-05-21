@@ -43,17 +43,16 @@
       "save": "",
       "collapseSeries": "",
       "gridColumns": "",
-      "gridItemSize": "",
       "bookTypeOverlay": "",
       "noBooks": "",
       "failedLibrary": "",
       "failedShelf": "",
+      "failedBooks": "",
       "activeFilters": ""
     },
     "tooltip": {
       "clearFilters": "",
       "visibleColumns": "",
-      "displaySettings": "",
       "selectSorting": "",
       "toggleView": "",
       "search": "",
@@ -662,7 +661,12 @@
   },
   "table": {
     "bookCoverAlt": "",
-    "statusPrefix": "",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "{{ status }}",
     "locked": "",
     "unlocked": "",
     "toast": {
