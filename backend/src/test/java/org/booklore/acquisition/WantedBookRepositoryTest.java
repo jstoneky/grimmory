@@ -29,7 +29,7 @@ import static org.mockito.Mockito.mock;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+        "spring.datasource.url=jdbc:h2:mem:wanted-testdb;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
@@ -103,11 +103,36 @@ class WantedBookRepositoryTest {
         assertThat(repository.findById(saved.getId())).isPresent();
     }
 
+    @Test
+    void existsByIsbn13_trueWhenPresent() {
+        repository.save(wantedBookWithIsbn("Dune", "9780441013593"));
+        assertThat(repository.existsByIsbn13("9780441013593")).isTrue();
+        assertThat(repository.existsByIsbn13("0000000000000")).isFalse();
+    }
+
+    @Test
+    void existsByTitleIgnoreCaseAndAuthorIgnoreCase_caseInsensitive() {
+        repository.save(wantedBook("Dune", WantedBookStatus.WANTED));
+        assertThat(repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase("dune", "test author")).isTrue();
+        assertThat(repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase("DUNE", "TEST AUTHOR")).isTrue();
+        assertThat(repository.existsByTitleIgnoreCaseAndAuthorIgnoreCase("Dune", "Wrong Author")).isFalse();
+    }
+
     private WantedBookEntity wantedBook(String title, WantedBookStatus status) {
         return WantedBookEntity.builder()
                 .title(title)
                 .author("Test Author")
                 .status(status)
+                .addedAt(Instant.now())
+                .build();
+    }
+
+    private WantedBookEntity wantedBookWithIsbn(String title, String isbn13) {
+        return WantedBookEntity.builder()
+                .title(title)
+                .author("Test Author")
+                .isbn13(isbn13)
+                .status(WantedBookStatus.WANTED)
                 .addedAt(Instant.now())
                 .build();
     }

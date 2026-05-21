@@ -156,6 +156,18 @@ class AcquisitionConfigServiceTest {
     }
 
     @Test
+    void updateClient_found_updatesAndReturns() {
+        ClientDTO dto = new ClientDTO(1L, "Updated SAB", "SABNZBD", "http://new:8080", "newkey", "ebooks", false);
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(clientEntity));
+        when(clientRepository.save(any())).thenReturn(clientEntity);
+
+        ClientDTO result = service.updateClient(1L, dto);
+
+        assertThat(result).isNotNull();
+        verify(clientRepository).save(clientEntity);
+    }
+
+    @Test
     void updateClient_notFound_throws404() {
         when(clientRepository.findById(99L)).thenReturn(Optional.empty());
         ClientDTO dto = new ClientDTO(99L, "X", "SABNZBD", "url", "key", "books", true);

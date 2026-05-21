@@ -10,6 +10,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,6 +31,17 @@ public class NewznabClient {
 
     private static final DateTimeFormatter RFC_822 =
             DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH);
+
+    private static final DocumentBuilderFactory DBF;
+    static {
+        DBF = DocumentBuilderFactory.newInstance();
+        DBF.setNamespaceAware(false);
+        try {
+            DBF.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (ParserConfigurationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -74,10 +86,7 @@ public class NewznabClient {
 
     private List<NzbResult> parseXmlResponse(String xml, String indexerName) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(false);
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            Document doc = factory.newDocumentBuilder()
+            Document doc = DBF.newDocumentBuilder()
                     .parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
             NodeList items = doc.getElementsByTagName("item");
@@ -157,11 +166,12 @@ public class NewznabClient {
     }
 
     private Instant parseDate(String pubDate) {
-        if (pubDate == null || pubDate.isBlank()) return Instant.now();
+        if (pubDate == null || pubDate.isBlank()) return null;
         try {
             return ZonedDateTime.parse(pubDate, RFC_822).toInstant();
         } catch (Exception e) {
-            return Instant.now();
+            log.debug("Unparseable pubDate '{}': {}", pubDate, e.getMessage());
+            return null;
         }
     }
 }

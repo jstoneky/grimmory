@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Select } from 'primeng/select';
 import { AppSettingKey } from '../../../../shared/model/app-settings.model';
@@ -23,12 +23,14 @@ export class BookdropAutoImportSettingsComponent {
   private hasHydrated = false;
 
   constructor() {
-    const settings = this.appSettingsService.appSettings();
-    if (settings && !this.hasHydrated) {
-      this.selectedAutoImportLibraryId = settings.bookdropAutoImportLibraryId ?? null;
-      this.selectedAutoImportPathId = settings.bookdropAutoImportPathId ?? null;
-      this.hasHydrated = true;
-    }
+    effect(() => {
+      const settings = this.appSettingsService.appSettings();
+      if (settings && !this.hasHydrated) {
+        this.selectedAutoImportLibraryId = settings.bookdropAutoImportLibraryId ?? null;
+        this.selectedAutoImportPathId = settings.bookdropAutoImportPathId ?? null;
+        this.hasHydrated = true;
+      }
+    });
   }
 
   get autoImportLibraryOptions() {

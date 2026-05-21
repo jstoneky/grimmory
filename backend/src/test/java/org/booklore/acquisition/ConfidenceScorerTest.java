@@ -119,6 +119,7 @@ class ConfidenceScorerTest {
 
         // +60 title + +20 author + +15 isbn10 + +5 epub = 100 (capped)
         assertThat(score).isGreaterThanOrEqualTo(85);
+        assertThat(score).isLessThanOrEqualTo(100);
     }
 
     // ─── Case 8: abridged penalty ─────────────────────────────────────────────

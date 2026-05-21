@@ -74,4 +74,20 @@ class UrlValidatorTest {
         assertThatThrownBy(() -> validator.validateOutboundUrl(url))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    // ─── Cloud metadata endpoints are blocked ─────────────────────────────────
+
+    @Test
+    void awsMetadata_isBlocked() {
+        assertThatThrownBy(() -> validator.validateOutboundUrl("http://169.254.169.254/latest/meta-data/"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cloud metadata");
+    }
+
+    @Test
+    void linkLocalAddress_isBlocked() {
+        assertThatThrownBy(() -> validator.validateOutboundUrl("http://169.254.0.1/"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cloud metadata");
+    }
 }

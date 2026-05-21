@@ -21,6 +21,10 @@ public class SabnzbdClient {
 
     private final ObjectMapper objectMapper;
 
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     public String sendNzb(AcquisitionClientEntity client, String nzbUrl, String bookTitle) {
         try {
             URI uri = UriComponentsBuilder.fromUriString(client.getUrl() + "/api")
@@ -33,9 +37,6 @@ public class SabnzbdClient {
                     .build()
                     .toUri();
 
-            HttpClient httpClient = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
                     .timeout(Duration.ofSeconds(10))
@@ -77,9 +78,6 @@ public class SabnzbdClient {
                     .build()
                     .toUri();
 
-            HttpClient httpClient = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
                     .timeout(Duration.ofSeconds(10))

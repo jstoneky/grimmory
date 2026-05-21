@@ -311,20 +311,6 @@ class AcquisitionServiceTest {
                 && "No indexer or download client configured".equals(h.getNzbTitle())));
     }
 
-    // ─── searchAndDispatch — indexer down ─────────────────────────────────────
-
-    @Test
-    void searchAndDispatch_indexerDown_setsNotFoundStatus() {
-        when(wantedBookRepository.save(any())).thenReturn(wantedEntity);
-        when(indexerRepository.findByEnabledTrueOrderByPriorityAsc()).thenReturn(List.of(indexer));
-        when(newznabClient.searchBooks(any(), any())).thenReturn(List.of());
-
-        AcquisitionResult result = service.searchAndDispatch(wantedEntity);
-
-        assertThat(result.found()).isFalse();
-        assertThat(wantedEntity.getStatus()).isEqualTo(WantedBookStatus.NOT_FOUND);
-    }
-
     // ─── triggerSearch ────────────────────────────────────────────────────────
 
     @Test
@@ -334,6 +320,61 @@ class AcquisitionServiceTest {
         assertThatThrownBy(() -> service.triggerSearch(99L))
                 .isInstanceOf(APIException.class)
                 .satisfies(e -> assertThat(((APIException) e).getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void triggerSearch_found_invokesSearchAndDispatch() {
+        when(wantedBookRepository.findById(1L)).thenReturn(Optional.of(wantedEntity));
+        when(wantedBookRepository.save(any())).thenReturn(wantedEntity);
+        when(indexerRepository.findByEnabledTrueOrderByPriorityAsc()).thenReturn(List.of(indexer));
+        when(newznabClient.searchBooks(any(), any())).thenReturn(List.of());
+
+        service.triggerSearch(1L);
+
+        verify(newznabClient, atLeastOnce()).searchBooks(any(), any());
+    }
+
+    // ─── getJobHistory ────────────────────────────────────────────────────────
+
+    @Test
+    void getJobHistory_wantedBookNotFound_throws404() {
+        when(wantedBookRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.getJobHistory(99L))
+                .isInstanceOf(APIException.class)
+                .satisfies(e -> assertThat(((APIException) e).getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void getJobHistory_returnsEmptyList() {
+        when(wantedBookRepository.existsById(1L)).thenReturn(true);
+        when(historyRepository.findByWantedBookIdOrderByAttemptedAtDesc(1L)).thenReturn(List.of());
+
+        var result = service.getJobHistory(1L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getJobHistory_returnsMappedDTOs() {
+        org.booklore.model.entity.AcquisitionJobHistoryEntity historyEntity =
+                org.booklore.model.entity.AcquisitionJobHistoryEntity.builder()
+                        .id(10L)
+                        .wantedBook(wantedEntity)
+                        .nzbTitle("Dune Frank Herbert EPUB")
+                        .confidence(85)
+                        .status(org.booklore.model.enums.JobHistoryStatus.SENT)
+                        .attemptedAt(java.time.Instant.now())
+                        .build();
+        when(wantedBookRepository.existsById(1L)).thenReturn(true);
+        when(historyRepository.findByWantedBookIdOrderByAttemptedAtDesc(1L))
+                .thenReturn(List.of(historyEntity));
+
+        var result = service.getJobHistory(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).nzbTitle()).isEqualTo("Dune Frank Herbert EPUB");
+        assertThat(result.get(0).confidence()).isEqualTo(85);
     }
 
     // ─── getWantedBooks ───────────────────────────────────────────────────────

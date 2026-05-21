@@ -1,10 +1,12 @@
 package org.booklore.model.dto.acquisition;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record ClientDTO(
         Long id,
-        String name,
-        String type,
-        String url,
+        @NotBlank String name,
+        @NotBlank String type,
+        @NotBlank String url,
         String apiKey,
         String category,
         boolean enabled

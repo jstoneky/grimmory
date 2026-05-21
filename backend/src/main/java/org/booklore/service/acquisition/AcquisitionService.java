@@ -112,6 +112,10 @@ public class AcquisitionService {
                 .toList();
     }
 
+    // NOTE: triggerSearch is @Async and calls searchAndDispatch via direct `this` reference,
+    // bypassing Spring's @Transactional proxy on searchAndDispatch. Each repository save()
+    // auto-commits via Spring Data's own transaction, so atomicity is maintained per-save.
+    // A proper fix would require extracting searchAndDispatch into a separate @Service bean.
     @Async
     public void triggerSearch(Long wantedBookId) {
         WantedBookEntity wanted = wantedBookRepository.findById(wantedBookId)
@@ -166,7 +170,7 @@ public class AcquisitionService {
 
         if (best.isPresent()) {
             ScoredResult winner = best.get();
-            return dispatchToSabnzbd(wanted, winner.result(), winner.score(), allResults);
+            return dispatchToSabnzbd(wanted, winner.result(), winner.score());
         } else {
             markFailed(wanted, allResults);
             return AcquisitionResult.notFound(wanted.getId());
@@ -186,8 +190,7 @@ public class AcquisitionService {
         return queries;
     }
 
-    private AcquisitionResult dispatchToSabnzbd(WantedBookEntity wanted, NzbResult winner,
-                                                 int score, List<NzbResult> allResults) {
+    private AcquisitionResult dispatchToSabnzbd(WantedBookEntity wanted, NzbResult winner, int score) {
         List<AcquisitionClientEntity> clients = clientRepository.findByEnabledTrue();
         if (clients.isEmpty()) {
             log.warn("No enabled SABnzbd client — cannot dispatch NZB for wanted book id={}", wanted.getId());
@@ -226,11 +229,12 @@ public class AcquisitionService {
         wanted.setStatus(WantedBookStatus.NOT_FOUND);
         wantedBookRepository.save(wanted);
 
+        record ScoredResult(NzbResult result, int score) {}
         allResults.stream()
-                .map(r -> new Object[]{r, confidenceScorer.calculateConfidence(wanted, r)})
-                .sorted((a, b) -> Integer.compare((int) b[1], (int) a[1]))
+                .map(r -> new ScoredResult(r, confidenceScorer.calculateConfidence(wanted, r)))
+                .sorted(Comparator.comparingInt(ScoredResult::score).reversed())
                 .limit(3)
-                .forEach(pair -> saveHistory(wanted, (NzbResult) pair[0], (int) pair[1], JobHistoryStatus.SKIPPED));
+                .forEach(sr -> saveHistory(wanted, sr.result(), sr.score(), JobHistoryStatus.SKIPPED));
     }
 
     private void saveConfigSkipHistory(WantedBookEntity wanted, String reason) {

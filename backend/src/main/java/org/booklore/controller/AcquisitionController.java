@@ -13,6 +13,7 @@ import org.booklore.service.acquisition.AcquisitionConfigService;
 import org.booklore.service.acquisition.AcquisitionService;
 import org.booklore.service.acquisition.BookDiscoveryService;
 import org.booklore.crons.BookAcquisitionScheduler;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,13 +43,13 @@ public class AcquisitionController {
 
     @PostMapping("/indexers")
     @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
-    public ResponseEntity<IndexerDTO> createIndexer(@RequestBody IndexerDTO dto) {
+    public ResponseEntity<IndexerDTO> createIndexer(@Valid @RequestBody IndexerDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionConfigService.createIndexer(dto));
     }
 
     @PutMapping("/indexers/{id}")
     @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
-    public ResponseEntity<IndexerDTO> updateIndexer(@PathVariable Long id, @RequestBody IndexerDTO dto) {
+    public ResponseEntity<IndexerDTO> updateIndexer(@PathVariable Long id, @Valid @RequestBody IndexerDTO dto) {
         return ResponseEntity.ok(acquisitionConfigService.updateIndexer(id, dto));
     }
 
@@ -75,13 +76,13 @@ public class AcquisitionController {
 
     @PostMapping("/clients")
     @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
-    public ResponseEntity<ClientDTO> createClient(@RequestBody ClientDTO dto) {
+    public ResponseEntity<ClientDTO> createClient(@Valid @RequestBody ClientDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionConfigService.createClient(dto));
     }
 
     @PutMapping("/clients/{id}")
     @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
-    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @RequestBody ClientDTO dto) {
+    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @Valid @RequestBody ClientDTO dto) {
         return ResponseEntity.ok(acquisitionConfigService.updateClient(id, dto));
     }
 
@@ -126,7 +127,7 @@ public class AcquisitionController {
 
     @PostMapping("/wanted")
     @PreAuthorize("@securityUtil.canManageAcquisition() or @securityUtil.isAdmin()")
-    public ResponseEntity<WantedBookDTO> addToWanted(@RequestBody AddToWantedRequest request) {
+    public ResponseEntity<WantedBookDTO> addToWanted(@Valid @RequestBody AddToWantedRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(acquisitionService.addToWanted(request));
     }
 

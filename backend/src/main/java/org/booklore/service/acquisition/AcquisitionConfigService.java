@@ -30,6 +30,10 @@ public class AcquisitionConfigService {
     private final AcquisitionClientRepository clientRepository;
     private final UrlValidator urlValidator;
 
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     public List<IndexerDTO> getIndexers() {
         return indexerRepository.findAll().stream()
                 .map(this::toIndexerDTO)
@@ -53,7 +57,7 @@ public class AcquisitionConfigService {
                 .orElseThrow(() -> ApiError.INDEXER_NOT_FOUND.createException(id));
         entity.setName(dto.name());
         entity.setUrl(dto.url());
-        if (dto.apiKey() != null && !dto.apiKey().startsWith("****")) {
+        if (dto.apiKey() != null && !dto.apiKey().equals(maskApiKey(entity.getApiKey()))) {
             entity.setApiKey(dto.apiKey());
         }
         entity.setEnabled(dto.enabled());
@@ -73,16 +77,13 @@ public class AcquisitionConfigService {
                 .orElseThrow(() -> ApiError.INDEXER_NOT_FOUND.createException(id));
         try {
             urlValidator.validateOutboundUrl(indexer.getUrl());
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
             String url = indexer.getUrl() + "/api?t=caps&apikey=" + indexer.getApiKey();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(10))
                     .GET()
                     .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200 && response.body().contains("caps")) {
                 return new ConnectionTestResult(true, "Indexer connected successfully");
             }
@@ -106,7 +107,7 @@ public class AcquisitionConfigService {
         }
         AcquisitionClientEntity entity = AcquisitionClientEntity.builder()
                 .name(dto.name())
-                .type(AcquisitionClientType.valueOf(dto.type()))
+                .type(parseClientType(dto.type()))
                 .url(dto.url())
                 .apiKey(dto.apiKey())
                 .category(dto.category())
@@ -120,9 +121,9 @@ public class AcquisitionConfigService {
         AcquisitionClientEntity entity = clientRepository.findById(id)
                 .orElseThrow(() -> ApiError.CLIENT_NOT_FOUND.createException(id));
         entity.setName(dto.name());
-        entity.setType(AcquisitionClientType.valueOf(dto.type()));
+        entity.setType(parseClientType(dto.type()));
         entity.setUrl(dto.url());
-        if (dto.apiKey() != null && !dto.apiKey().startsWith("****")) {
+        if (dto.apiKey() != null && !dto.apiKey().equals(maskApiKey(entity.getApiKey()))) {
             entity.setApiKey(dto.apiKey());
         }
         entity.setCategory(dto.category());
@@ -142,9 +143,6 @@ public class AcquisitionConfigService {
                 .orElseThrow(() -> ApiError.CLIENT_NOT_FOUND.createException(id));
         try {
             urlValidator.validateOutboundUrl(client.getUrl());
-            HttpClient httpClient = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
             String url = client.getUrl() + "/api?mode=version&apikey=" + client.getApiKey() + "&output=json";
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -174,5 +172,13 @@ public class AcquisitionConfigService {
     private String maskApiKey(String key) {
         if (key == null || key.length() <= 4) return "****";
         return "****" + key.substring(key.length() - 4);
+    }
+
+    private AcquisitionClientType parseClientType(String type) {
+        try {
+            return AcquisitionClientType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown client type: " + type);
+        }
     }
 }

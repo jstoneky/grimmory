@@ -25,7 +25,11 @@ def load_allowlist(path: Path) -> set[str]:
 
 
 def load_failures(xml_path: Path) -> set[str]:
-    tree = ET.parse(xml_path)
+    try:
+        tree = ET.parse(xml_path)
+    except ET.ParseError as exc:
+        print(f"::error ::Failed to parse test results XML: {exc}")
+        sys.exit(1)
     failures: set[str] = set()
     for tc in tree.iter("testcase"):
         if tc.find("failure") is None and tc.find("error") is None:

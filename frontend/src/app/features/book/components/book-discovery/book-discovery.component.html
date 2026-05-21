@@ -48,7 +48,7 @@
 
   @if (results.length > 0) {
     <div class="results-grid">
-      @for (book of results; track $index) {
+      @for (book of results; track (book.isbn13 ?? book.isbn10 ?? book.isbn ?? book.title)) {
         <div class="book-card">
           @if (book.thumbnailUrl) {
             <img [src]="book.thumbnailUrl" [alt]="book.title"

@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, inject, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {DatePipe} from '@angular/common';
 import {Button} from 'primeng/button';
@@ -13,6 +13,7 @@ import {AcquisitionService, AddToWantedRequest, BookSearchResult} from '../../..
 @Component({
   selector: 'app-book-discovery',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     DatePipe,
@@ -31,6 +32,8 @@ export class BookDiscoveryComponent implements OnInit, OnDestroy {
   private readonly acquisitionService = inject(AcquisitionService);
   private readonly messageService = inject(MessageService);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  private readonly PAGE_SIZE = 20;
 
   searchQuery = '';
   isIsbnSearch = false;
@@ -54,13 +57,21 @@ export class BookDiscoveryComponent implements OnInit, OnDestroy {
       next: (isbns) => {
         this.libraryIsbns = new Set(isbns);
         this.cdr.detectChanges();
-      }
+      },
+      error: () => this.messageService.add({
+        severity: 'warn', summary: 'Warning',
+        detail: 'Could not load library data. Status indicators may be inaccurate.'
+      })
     });
     this.acquisitionService.getWantedBooks().subscribe({
       next: (books) => {
         this.wantedIsbns = new Set(books.flatMap(b => [b.isbn13, b.isbn10].filter((v): v is string => !!v)));
         this.cdr.detectChanges();
-      }
+      },
+      error: () => this.messageService.add({
+        severity: 'warn', summary: 'Warning',
+        detail: 'Could not load wanted list. Status indicators may be inaccurate.'
+      })
     });
   }
 
@@ -88,7 +99,7 @@ export class BookDiscoveryComponent implements OnInit, OnDestroy {
     obs.subscribe({
       next: (data) => {
         this.results = data;
-        this.hasMore = !this.isIsbnSearch && data.length === 20;
+        this.hasMore = !this.isIsbnSearch && data.length === this.PAGE_SIZE;
         this.loading = false;
         this.cdr.detectChanges();
         if (this.hasMore) this.prefetchPage(this.searchQuery.trim(), 1);
@@ -161,6 +172,7 @@ export class BookDiscoveryComponent implements OnInit, OnDestroy {
       title: book.title,
       author: book.authors?.join(', ') || book.author,
       isbn13: book.isbn13 || book.isbn,
+      isbn10: book.isbn10,
       provider: book.provider || 'GOOGLE',
       providerBookId: book.googleBookId || book.id,
       thumbnailUrl: book.thumbnailUrl
@@ -192,7 +204,7 @@ export class BookDiscoveryComponent implements OnInit, OnDestroy {
   }
 
   private bookKey(book: BookSearchResult): string {
-    return book.isbn13 || book.isbn || book.title;
+    return book.isbn13 ?? book.isbn ?? book.isbn10 ?? `${book.title}:${book.author ?? ''}:${book.publishedDate ?? ''}`;
   }
 
   getAuthors(book: BookSearchResult): string {

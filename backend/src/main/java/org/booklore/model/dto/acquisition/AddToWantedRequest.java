@@ -1,7 +1,9 @@
 package org.booklore.model.dto.acquisition;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record AddToWantedRequest(
-        String title,
+        @NotBlank String title,
         String author,
         String isbn13,
         String isbn10,

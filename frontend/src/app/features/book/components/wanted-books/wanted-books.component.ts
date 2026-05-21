@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, inject, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {RouterLink} from '@angular/router';
 import {Button} from 'primeng/button';
@@ -20,6 +20,7 @@ import {Checkbox} from 'primeng/checkbox';
 @Component({
   selector: 'app-wanted-books',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
     FormsModule,
@@ -76,6 +77,9 @@ export class WantedBooksComponent implements OnInit, OnDestroy {
             }
             if (notification.status === 'DOWNLOADED') {
               this.messageService.add({severity: 'success', summary: 'Downloaded', detail: `Book downloaded: ${book.title}`});
+            }
+            if (this.expandedRows[book.id]) {
+              this.loadHistory(book);
             }
             this.cdr.detectChanges();
           }

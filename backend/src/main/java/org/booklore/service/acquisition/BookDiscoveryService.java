@@ -27,7 +27,7 @@ public class BookDiscoveryService {
             .build();
 
     public List<BookMetadata> searchBooks(String query, int page) {
-        String cacheKey = query + "::page=" + page;
+        String cacheKey = "query::" + query + "::page=" + page;
         return searchCache.get(cacheKey, k -> {
             log.info("Discovery search: query='{}', page={}", query, page);
             return openLibraryParser.searchByTerm(query, page);
@@ -35,7 +35,7 @@ public class BookDiscoveryService {
     }
 
     public List<BookMetadata> searchByIsbn(String isbn) {
-        return searchCache.get("isbn:" + isbn, k -> {
+        return searchCache.get("isbn::" + isbn, k -> {
             log.info("Discovery search: isbn='{}'", isbn);
             return openLibraryParser.searchByIsbn(isbn);
         });
