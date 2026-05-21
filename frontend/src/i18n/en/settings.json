@@ -11,6 +11,7 @@
     "authentication": "OIDC",
     "tasks": "Tasks",
     "auditLogs": "Audit Logs",
+    "acquisition": "Acquisition",
     "opds": "OPDS",
     "devices": "Devices"
   }

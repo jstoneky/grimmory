@@ -13,5 +13,3 @@
 # delete the entry. New failures (yours or upstream's) will fail the
 # gate as a real regression.
 
-src/app/features/settings/metadata-settings/metadata-settings-component.spec.ts :: MetadataSettingsComponent > hydrates when metadata settings arrive after initial render
-src/app/features/settings/metadata-settings/metadata-settings-component.spec.ts :: MetadataSettingsComponent > persists bookdrop download toggles and metadata option submissions
