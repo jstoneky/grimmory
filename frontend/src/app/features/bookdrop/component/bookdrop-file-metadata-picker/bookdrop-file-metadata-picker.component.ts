@@ -10,7 +10,7 @@ import {Textarea} from 'primeng/textarea';
 import {AutoComplete} from 'primeng/autocomplete';
 import {Image} from 'primeng/image';
 import {LazyLoadImageModule} from 'ng-lazyload-image';
-import {ConfirmationService} from 'primeng/api';
+import {ConfirmationService, MessageService} from 'primeng/api';
 import {CdkDragDrop, CdkDropList, CdkDrag, moveItemInArray} from '@angular/cdk/drag-drop';
 import {AutoCompleteSelectEvent} from 'primeng/autocomplete';
 import {DatePicker} from 'primeng/datepicker';
@@ -19,6 +19,7 @@ import {MetadataUtilsService} from '../../../../shared/metadata';
 import {MetadataProviderSpecificFields} from '../../../../shared/model/app-settings.model';
 import {AppSettingsService} from '../../../../shared/service/app-settings.service';
 import {TranslocoDirective, TranslocoService} from '@jsverse/transloco';
+import {BookdropService} from '../../service/bookdrop.service';
 
 @Component({
   selector: 'app-bookdrop-file-metadata-picker-component',
@@ -44,6 +45,8 @@ import {TranslocoDirective, TranslocoService} from '@jsverse/transloco';
 export class BookdropFileMetadataPickerComponent {
 
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly messageService = inject(MessageService);
+  private readonly bookdropService = inject(BookdropService);
   private readonly metadataUtils = inject(MetadataUtilsService);
   protected readonly urlHelper = inject(UrlHelperService);
   private readonly appSettingsService = inject(AppSettingsService);
@@ -57,8 +60,10 @@ export class BookdropFileMetadataPickerComponent {
   @Input() bookdropFileId!: number;
 
   @Output() metadataCopied = new EventEmitter<boolean>();
+  @Output() metadataRefetched = new EventEmitter<void>();
 
   authorInputValue = '';
+  refetchingMetadata = false;
 
   private enabledProviderFields: MetadataProviderSpecificFields | null = null;
 
@@ -185,6 +190,20 @@ export class BookdropFileMetadataPickerComponent {
         target.value = '';
       }
     }
+  }
+
+  retryFetchMetadata(): void {
+    this.refetchingMetadata = true;
+    this.bookdropService.refetchMetadata(this.bookdropFileId).subscribe({
+      next: () => {
+        this.refetchingMetadata = false;
+        this.metadataRefetched.emit();
+      },
+      error: () => {
+        this.refetchingMetadata = false;
+        this.messageService.add({severity: 'error', summary: 'Error', detail: 'Failed to re-fetch metadata'});
+      }
+    });
   }
 
   confirmReset(): void {

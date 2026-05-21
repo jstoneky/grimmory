@@ -83,6 +83,14 @@ public class BookdropFileController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Retry metadata fetch for a bookdrop file", description = "Re-run the online metadata fetch for a single bookdrop file.")
+    @ApiResponse(responseCode = "200", description = "Metadata re-fetch completed")
+    @PostMapping("/files/{id}/refetch-metadata")
+    @PreAuthorize("@securityUtil.canAccessBookdrop() or @securityUtil.isAdmin()")
+    public ResponseEntity<BookdropFile> refetchMetadata(@PathVariable Long id) {
+        return ResponseEntity.ok(bookDropService.refetchMetadata(id));
+    }
+
     @Operation(summary = "Extract metadata from filenames using pattern", description = "Parse filenames of selected files using a pattern to extract metadata fields.")
     @ApiResponse(responseCode = "200", description = "Pattern extraction completed")
     @PostMapping("/files/extract-pattern")

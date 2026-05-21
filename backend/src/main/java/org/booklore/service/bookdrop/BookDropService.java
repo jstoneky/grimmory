@@ -27,6 +27,7 @@ import org.booklore.repository.BookRepository;
 import org.booklore.repository.BookdropFileRepository;
 import org.booklore.repository.LibraryRepository;
 import org.booklore.service.NotificationService;
+import org.booklore.service.bookdrop.BookdropMetadataService;
 import org.booklore.service.event.BookAddedEvent;
 import org.booklore.service.file.FileMovingHelper;
 import org.booklore.service.fileprocessor.BookFileProcessor;
@@ -73,6 +74,7 @@ public class BookDropService {
     private final AppProperties appProperties;
     private final BookdropFileMapper mapper;
     private final ObjectMapper objectMapper;
+    private final BookdropMetadataService bookdropMetadataService;
     private final FileMovingHelper fileMovingHelper;
     private final MonitoringRegistrationService monitoringRegistrationService;
     private final ApplicationEventPublisher eventPublisher;
@@ -647,6 +649,15 @@ public class BookDropService {
     private boolean isFormatAllowed(LibraryEntity library, BookFileType fileType) {
         var allowedFormats = library.getAllowedFormats();
         return allowedFormats == null || allowedFormats.isEmpty() || allowedFormats.contains(fileType);
+    }
+
+    public BookdropFile refetchMetadata(Long fileId) {
+        try {
+            BookdropFileEntity entity = bookdropMetadataService.attachFetchedMetadata(fileId);
+            return mapper.toDto(entity);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to re-fetch metadata for bookdrop file " + fileId, e);
+        }
     }
 
     private record FileProcessingContext(Long libraryId, Long pathId, BookMetadata metadata) {

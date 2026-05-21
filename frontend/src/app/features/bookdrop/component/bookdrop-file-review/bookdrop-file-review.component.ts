@@ -257,6 +257,18 @@ export class BookdropFileReviewComponent implements OnInit {
     this.copiedFlags[fileId] = copied;
   }
 
+  onMetadataRefetched(fileId: number): void {
+    this.bookdropService.getPendingFiles(this.currentPage, this.pageSize)
+      .pipe(take(1))
+      .subscribe(response => {
+        const updated = response.content.find(f => f.id === fileId);
+        if (updated && this.fileUiCache[fileId]) {
+          this.fileUiCache[fileId].file = updated;
+          this.bookdropFileUis = [...this.bookdropFileUis];
+        }
+      });
+  }
+
   applyLibraryDefaults(): void {
     if (!this.defaultLibraryId || !this.libraries) return;
 

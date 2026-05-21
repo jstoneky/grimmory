@@ -354,11 +354,12 @@
         <p-button
           size="small"
           severity="warn"
-          icon="pi pi-refresh"
+          [icon]="refetchingMetadata ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
           [outlined]="true"
-          [pTooltip]="t('resetAllTooltip')"
+          pTooltip="Retry metadata fetch"
           tooltipPosition="left"
-          (onClick)="confirmReset()"
+          [disabled]="refetchingMetadata"
+          (onClick)="retryFetchMetadata()"
         ></p-button>
       </div>
       <div class="metabody">

@@ -218,7 +218,14 @@ public class MetadataRefreshService {
 
     public Map<MetadataProvider, BookMetadata> fetchMetadataForBook(List<MetadataProvider> providers, Book book) {
         return providers.stream()
-                .map(provider -> fetchTopMetadataFromAProvider(provider, book))
+                .map(provider -> {
+                    try {
+                        return fetchTopMetadataFromAProvider(provider, book);
+                    } catch (Exception e) {
+                        log.warn("Metadata provider {} failed, skipping: {}", provider, e.getMessage());
+                        return null;
+                    }
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         BookMetadata::getProvider,
@@ -230,7 +237,14 @@ public class MetadataRefreshService {
     public Map<MetadataProvider, BookMetadata> fetchMetadataForBook(List<MetadataProvider> providers, BookEntity bookEntity) {
         Book book = bookMapper.toBook(bookEntity);
         return providers.stream()
-                .map(provider -> fetchTopMetadataFromAProvider(provider, book))
+                .map(provider -> {
+                    try {
+                        return fetchTopMetadataFromAProvider(provider, book);
+                    } catch (Exception e) {
+                        log.warn("Metadata provider {} failed, skipping: {}", provider, e.getMessage());
+                        return null;
+                    }
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         BookMetadata::getProvider,
