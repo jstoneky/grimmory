@@ -7,6 +7,7 @@ import { SortPref } from '../sidebar-sort-preferences';
 
 import { SidebarLeaf, SidebarSection } from '../navigation/nav-item.model';
 import { buildHomeNavItems, findPageNavItem, ShellNavPermissions } from '../navigation/nav-catalog';
+export { buildAcquisitionSection } from '../../../features/book/acquisition-nav-section';
 
 export interface HomeCounts {
   allBooks: number;

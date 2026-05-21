@@ -8,6 +8,7 @@ export interface ShellNavPermissions {
   canAccessLibraryStats?: boolean;
   canAccessUserStats?: boolean;
   canAccessBookdrop?: boolean;
+  canManageAcquisition?: boolean;
 }
 
 export interface ShellActionHandlers {

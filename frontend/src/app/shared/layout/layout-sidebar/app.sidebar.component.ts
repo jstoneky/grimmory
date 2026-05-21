@@ -34,6 +34,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavItem, SidebarSection } from '../navigation/nav-item.model';
 import { buildCreateActionNavItems } from '../navigation/nav-catalog';
 import {
+  buildAcquisitionSection,
   buildHomeSection,
   buildLibrarySection,
   buildMagicShelfSection,
@@ -190,6 +191,7 @@ export class AppSidebarComponent {
         { menuItems: this.libraryShelfMenuService },
       ),
       ...buildToolsSection(this.translate, this.currentUser()?.permissions ?? {}),
+      ...buildAcquisitionSection(this.translate, this.currentUser()?.permissions ?? {}),
     ];
   });
 
