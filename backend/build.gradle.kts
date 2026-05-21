@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.springframework.boot.gradle.tasks.bundling.BootJar
@@ -8,13 +9,13 @@ plugins {
     java
     id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.hibernate.orm") version "7.3.2.Final"
+    id("org.hibernate.orm") version "7.3.4.Final"
     id("com.github.ben-manes.versions") version "0.54.0"
     jacoco
 }
 
 group = "org.booklore"
-version = System.getenv("APP_VERSION") ?: "0.0.1-SNAPSHOT"
+version = (System.getenv("APP_VERSION") ?: "0.0.1-SNAPSHOT").replace(Regex("^v"), "")
 
 val defaultFrontendDistDir = file("${rootDir}/../frontend/dist/grimmory/browser")
 val configuredFrontendDistDir = providers.gradleProperty("frontendDistDir")
@@ -31,6 +32,11 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 val useLocalLibs = providers.gradleProperty("useLocalLibs").isPresent
+val mainSourceSet = the<SourceSetContainer>()["main"]
+val openApiOutputDir = layout.buildDirectory.dir("openapi")
+val openApiOutputFile = openApiOutputDir.map { it.file("grimmory-openapi.json") }
+val openApiLogFile = openApiOutputDir.map { it.file("export-openapi.log") }
+val openApiExportScript = layout.projectDirectory.file("scripts/export-openapi.sh")
 
 repositories {
     if (useLocalLibs) mavenLocal()
@@ -62,13 +68,17 @@ fun pdfiumNativesClassifier(): String {
         "win" in osName -> "windows"
         "mac" in osName || "darwin" in osName -> "darwin"
         "nux" in osName || "linux" in osName -> {
-            val isMusl = try {
-                val libDir = File("/lib")
-                libDir.exists() && (libDir.listFiles()?.any { f -> f.name.startsWith("ld-musl-") } == true)
-            } catch (_: Exception) {
-                try {
-                    File("/proc/self/maps").readText().contains("musl")
-                } catch (_: Exception) { false }
+            val libcOverride = (System.getenv("TARGETLIBC")
+                ?: project.findProperty("targetLibc")?.toString())?.lowercase()
+            val isMusl = when (libcOverride) {
+                "musl" -> true
+                "gnu", "glibc" -> false
+                else -> if (targetPlatform != null) false else runCatching {
+                    val libDir = File("/lib")
+                    libDir.exists() && (libDir.listFiles()?.any { f -> f.name.startsWith("ld-musl-") } == true)
+                }.getOrElse {
+                    runCatching { File("/proc/self/maps").readText().contains("musl") }.getOrDefault(false)
+                }
             }
             if (isMusl) "linux-musl" else "linux"
         }
@@ -84,11 +94,63 @@ fun pdfiumNativesClassifier(): String {
     return "natives-$osKey-$archKey"
 }
 
+fun epub4jNativesClassifier(): String {
+    // Support cross-compilation: check for explicit target overrides first
+    val targetPlatform = System.getenv("TARGETPLATFORM")
+        ?: project.findProperty("targetPlatform")?.toString()
+    val targetArch = System.getenv("TARGETARCH")
+        ?: project.findProperty("targetArch")?.toString()
+
+    val osName: String
+    val arch: String
+
+    if (targetPlatform != null) {
+        // Docker TARGETPLATFORM format: linux/amd64, linux/arm64
+        val parts = targetPlatform.split("/")
+        osName = parts.getOrElse(0) { "linux" }
+        arch = parts.getOrElse(1) { "amd64" }
+    } else {
+        osName = System.getProperty("os.name").lowercase()
+        arch = targetArch ?: System.getProperty("os.arch").lowercase()
+    }
+
+    val osKey = when {
+        "win" in osName -> "windows"
+        "mac" in osName || "darwin" in osName -> "macos"
+        "nux" in osName || "linux" in osName -> {
+            val libcOverride = (System.getenv("TARGETLIBC")
+                ?: project.findProperty("targetLibc")?.toString())?.lowercase()
+            val isMusl = when (libcOverride) {
+                "musl" -> true
+                "gnu", "glibc" -> false
+                else -> if (targetPlatform != null) false else runCatching {
+                    val libDir = File("/lib")
+                    libDir.exists() && (libDir.listFiles()?.any { f -> f.name.startsWith("ld-musl-") } == true)
+                }.getOrElse {
+                    runCatching { File("/proc/self/maps").readText().contains("musl") }.getOrDefault(false)
+                }
+            }
+            if (isMusl) "linux-musl" else "linux"
+        }
+        else -> error("Unsupported OS: $osName")
+    }
+
+    val archKey = when (arch) {
+        "x86_64", "amd64" -> "x86_64"
+        "aarch64", "arm64" -> "aarch64"
+        else -> error("Unsupported architecture: $arch")
+    }
+
+    return "$osKey-$archKey"
+}
+
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
 }
+
+val openApiExportRuntimeOnly by configurations.creating
 
 dependencies {
     // --- Spring Boot ---
@@ -97,10 +159,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-configuration-processor")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.9")
 
     // --- Reactive Streams ---
     implementation("io.projectreactor:reactor-core")
@@ -108,19 +169,14 @@ dependencies {
     // --- Database & Migration ---
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.8")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
-    implementation("org.flywaydb:flyway-mysql:12.4.0")
-
-    // --- Security & Authentication ---
-    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+    implementation("org.flywaydb:flyway-mysql:12.6.0")
 
     // --- Lombok (For Clean Code) ---
     compileOnly("org.projectlombok:lombok:1.18.46")
     annotationProcessor("org.projectlombok:lombok:1.18.46")
 
     // --- Book & Image Processing ---
-    val pdfium4jVersion = if (useLocalLibs) "+" else "0.16.0"
+    val pdfium4jVersion = if (useLocalLibs) "+" else "1.2.0"
     implementation("org.grimmory:pdfium4j:$pdfium4jVersion")
     runtimeOnly("org.grimmory:pdfium4j:$pdfium4jVersion:${pdfiumNativesClassifier()}")
 
@@ -131,12 +187,14 @@ dependencies {
     implementation("com.twelvemonkeys.imageio:imageio-bmp:3.13.1")
 
     // epub4j-grimmory fork publishes as org.grimmory:epub4j-core
-    val epub4jCoords = if (useLocalLibs) "org.grimmory:epub4j-core:+" else "org.grimmory:epub4j-core:1.2.0"
+    val epub4jCoords = if (useLocalLibs) "org.grimmory:epub4j-core:+" else "org.grimmory:epub4j-core:1.4.0"
     implementation(epub4jCoords)
 
     // epub4j-native for native archive parsing
-    val epub4jNativeCoords = if (useLocalLibs) "org.grimmory:epub4j-native:+" else "org.grimmory:epub4j-native:1.2.0"
+    val epub4jNativeVersion = "1.4.0"
+    val epub4jNativeCoords = if (useLocalLibs) "org.grimmory:epub4j-native:+" else "org.grimmory:epub4j-native:$epub4jNativeVersion"
     implementation(epub4jNativeCoords)
+    runtimeOnly("$epub4jNativeCoords:${epub4jNativesClassifier()}")
 
     // --- Audio Metadata (Audiobook Support) ---
     implementation("com.github.RouHim:jaudiotagger:2.0.19")
@@ -162,13 +220,13 @@ dependencies {
 
     // --- XML Support (JAXB) ---
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.5")
-    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.7")
+    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.8")
 
     // --- Template Engine ---
     implementation("org.freemarker:freemarker:2.3.34")
 
     // --- Jackson 3 ---
-    implementation(platform("tools.jackson:jackson-bom:3.1.2"))
+    implementation(platform("tools.jackson:jackson-bom:3.1.3"))
     implementation("tools.jackson.core:jackson-core")
     implementation("tools.jackson.core:jackson-databind")
     implementation("tools.jackson.module:jackson-module-blackbird")
@@ -179,17 +237,21 @@ dependencies {
 
     // --- Caching ---
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
 
     // --- Test Dependencies ---
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-test-autoconfigure")
     testImplementation("org.assertj:assertj-core:3.27.7")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
+    // --- Acquisition feature ---
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("com.h2database:h2")
+    add(openApiExportRuntimeOnly.name, "com.h2database:h2")
+}
 
-    // PDFBox for test PDF creation only (production code uses PDFium4j)
-    testImplementation("org.apache.pdfbox:pdfbox:3.0.7")
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 hibernate {
@@ -238,4 +300,44 @@ tasks.named<BootRun>("bootRun") {
 
 tasks.named<BootJar>("bootJar") {
     mainClass.set("org.booklore.BookloreApplication")
+}
+
+tasks.register("exportOpenApi") {
+    group = "documentation"
+    description = "Boot the backend with the openapi-export profile and write build/openapi/grimmory-openapi.json."
+    dependsOn(tasks.named("classes"))
+    inputs.files(mainSourceSet.runtimeClasspath, openApiExportRuntimeOnly, openApiExportScript)
+    outputs.file(openApiOutputFile)
+
+    doLast {
+        val outputFile = openApiOutputFile.get().asFile
+        val logFile = openApiLogFile.get().asFile
+        val classpath = files(mainSourceSet.runtimeClasspath, openApiExportRuntimeOnly).asPath
+        val javaExecutable = javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(25))
+        }.get().executablePath.asFile.absolutePath
+
+        val result = ProcessBuilder(
+            "bash",
+            openApiExportScript.asFile.absolutePath,
+            javaExecutable,
+            classpath,
+            outputFile.absolutePath
+        )
+            .directory(project.projectDir)
+            .inheritIO()
+            .apply {
+                environment()["OPENAPI_EXPORT_LOG_FILE"] = logFile.absolutePath
+            }
+            .start()
+
+        val exitCode = result.waitFor()
+        check(exitCode == 0) { "OpenAPI export script failed with exit code $exitCode. See ${logFile.absolutePath}." }
+    }
+}
+
+tasks.register("buildOpenApiArtifacts") {
+    group = "build"
+    description = "Build the backend jar and export build/openapi/grimmory-openapi.json from the openapi-export profile."
+    dependsOn(tasks.named("bootJar"), tasks.named("exportOpenApi"))
 }

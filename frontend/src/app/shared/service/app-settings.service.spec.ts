@@ -43,6 +43,7 @@ function buildAppSettings(overrides: Partial<AppSettings> = {}): AppSettings {
     remoteAuthEnabled: publicSettings.remoteAuthEnabled,
     oidcEnabled: publicSettings.oidcEnabled,
     oidcProviderDetails: publicSettings.oidcProviderDetails,
+    oidcRedirectUris: ['grimmory://oauth2-callback'],
     oidcAutoProvisionDetails: {
       enableAutoProvisioning: false,
       allowLocalAccountLinking: false,
@@ -66,6 +67,8 @@ function buildAppSettings(overrides: Partial<AppSettings> = {}): AppSettings {
     oidcGroupSyncMode: null,
     oidcForceOnlyMode: publicSettings.oidcForceOnlyMode,
     diskType: 'LOCAL',
+    bookdropAutoImportLibraryId: null,
+    bookdropAutoImportPathId: null,
     ...overrides,
   };
 }

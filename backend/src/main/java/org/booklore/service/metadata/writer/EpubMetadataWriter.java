@@ -40,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
@@ -47,6 +48,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.grimmory.epub4j.archive.EpubContainer;
 import org.grimmory.epub4j.archive.EpubContainers;
+import java.util.function.Predicate;
+import java.io.UncheckedIOException;
 
 @Slf4j
 @Component
@@ -54,6 +57,7 @@ import org.grimmory.epub4j.archive.EpubContainers;
 public class EpubMetadataWriter implements MetadataWriter {
 
     private static final String OPF_NS = "http://www.idpf.org/2007/opf";
+    private static final Pattern CALIBRE_PREFIX_PATTERN = Pattern.compile("calibre:\\s*https?://[^\\s]+");
     private final AppSettingService appSettingService;
 
     @Override
@@ -574,7 +578,7 @@ public class EpubMetadataWriter implements MetadataWriter {
                                 zos.closeEntry();
                             }
                         } catch (IOException e) {
-                            throw new java.io.UncheckedIOException(e);
+                            throw new UncheckedIOException(e);
                         }
                     });
             }
@@ -714,7 +718,7 @@ public class EpubMetadataWriter implements MetadataWriter {
         return subj;
     }
 
-    private Element getMetaElementByFilter(Element metadataElement, java.util.function.Predicate<Element> filter) {
+    private Element getMetaElementByFilter(Element metadataElement, Predicate<Element> filter) {
         NodeList metas = metadataElement.getElementsByTagNameNS("*", "meta");
         for (int i = 0; i < metas.getLength(); i++) {
             Element meta = (Element) metas.item(i);
@@ -1111,7 +1115,7 @@ public class EpubMetadataWriter implements MetadataWriter {
         if (packageElement.hasAttribute("prefix")) {
             String prefix = packageElement.getAttribute("prefix");
             if (prefix.contains("calibre:")) {
-                prefix = prefix.replaceAll("calibre:\\s*https?://[^\\s]+", "").trim();
+                prefix = CALIBRE_PREFIX_PATTERN.matcher(prefix).replaceAll("").trim();
                 if (prefix.isEmpty()) {
                     packageElement.removeAttribute("prefix");
                 } else {
@@ -1162,19 +1166,19 @@ public class EpubMetadataWriter implements MetadataWriter {
 
     private void organizeMetadataElements(Element metadataElement) {
         final String DC_NS = "http://purl.org/dc/elements/1.1/";
-        java.util.List<Element> identifiers = new java.util.ArrayList<>();
-        java.util.List<Element> titles = new java.util.ArrayList<>();
-        java.util.List<Element> creators = new java.util.ArrayList<>();
-        java.util.List<Element> contributors = new java.util.ArrayList<>();
-        java.util.List<Element> languages = new java.util.ArrayList<>();
-        java.util.List<Element> dates = new java.util.ArrayList<>();
-        java.util.List<Element> publishers = new java.util.ArrayList<>();
-        java.util.List<Element> descriptions = new java.util.ArrayList<>();
-        java.util.List<Element> subjects = new java.util.ArrayList<>();
-        java.util.List<Element> seriesMetas = new java.util.ArrayList<>();
-        java.util.List<Element> bookloreMetas = new java.util.ArrayList<>();
-        java.util.List<Element> modifiedMetas = new java.util.ArrayList<>();
-        java.util.List<Element> otherMetas = new java.util.ArrayList<>();
+        List<Element> identifiers = new ArrayList<>();
+        List<Element> titles = new ArrayList<>();
+        List<Element> creators = new ArrayList<>();
+        List<Element> contributors = new ArrayList<>();
+        List<Element> languages = new ArrayList<>();
+        List<Element> dates = new ArrayList<>();
+        List<Element> publishers = new ArrayList<>();
+        List<Element> descriptions = new ArrayList<>();
+        List<Element> subjects = new ArrayList<>();
+        List<Element> seriesMetas = new ArrayList<>();
+        List<Element> bookloreMetas = new ArrayList<>();
+        List<Element> modifiedMetas = new ArrayList<>();
+        List<Element> otherMetas = new ArrayList<>();
         
         NodeList allChildren = metadataElement.getChildNodes();
         for (int i = 0; i < allChildren.getLength(); i++) {

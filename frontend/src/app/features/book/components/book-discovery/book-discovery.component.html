@@ -1,0 +1,97 @@
+<p-toast></p-toast>
+
+<div class="discover-container p-4">
+
+  <div class="discover-header">
+    <p class="discover-title">Discover Books</p>
+
+    <div class="discover-toolbar">
+      <button class="topbar-item" [class.active]="isIsbnSearch"
+              (click)="isIsbnSearch = !isIsbnSearch"
+              pTooltip="Toggle ISBN search" tooltipPosition="top"
+              type="button">
+        <i class="pi pi-barcode" aria-hidden="true"></i>
+        <span class="sr-only">Toggle ISBN search</span>
+      </button>
+
+      <div class="search-wrapper">
+        <i class="pi pi-search search-icon"></i>
+        <input type="text" pInputText
+               [placeholder]="isIsbnSearch ? 'Enter ISBN...' : 'Search by title, author...'"
+               [(ngModel)]="searchQuery"
+               (keyup.enter)="search()"
+               class="search-input"/>
+        @if (searchQuery) {
+          <p-button icon="pi pi-times" [text]="true" size="small" [rounded]="true"
+                    class="search-clear-btn" (onClick)="clearSearch()"></p-button>
+        }
+      </div>
+
+      <button class="topbar-item" [disabled]="!searchQuery.trim()"
+              (click)="search()" pTooltip="Search" tooltipPosition="top"
+              type="button">
+        @if (loading && results.length === 0) {
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        } @else {
+          <i class="pi pi-search" aria-hidden="true"></i>
+        }
+        <span class="sr-only">Search</span>
+      </button>
+    </div>
+  </div>
+
+  @if (!loading && results.length === 0 && searchQuery.trim()) {
+    <div class="text-center py-8 text-muted-color">
+      No results found
+    </div>
+  }
+
+  @if (results.length > 0) {
+    <div class="results-grid">
+      @for (book of results; track (book.isbn13 ?? book.isbn10 ?? book.isbn ?? book.title)) {
+        <div class="book-card">
+          @if (book.thumbnailUrl) {
+            <img [src]="book.thumbnailUrl" [alt]="book.title"
+                 style="width:100%; height:200px; object-fit:cover;"/>
+          }
+          @if (!book.thumbnailUrl) {
+            <div style="height:200px; display:flex; align-items:center; justify-content:center; background:var(--p-surface-100);">
+              <i class="pi pi-book text-4xl text-muted-color"></i>
+            </div>
+          }
+
+          <div class="book-card-body">
+            <div class="font-semibold text-sm line-clamp-2">{{ book.title }}</div>
+            <div class="text-xs text-muted-color line-clamp-1">{{ getAuthors(book) }}</div>
+            <div class="text-xs text-muted-color">{{ book.publishedDate | date:"yyyy" }}</div>
+
+            <div style="margin-top:auto; padding-top:0.5rem;">
+              @if (isInLibrary(book)) {
+                <p-tag value="In Library" severity="secondary" class="w-full text-center"></p-tag>
+              }
+              @if (!isInLibrary(book) && !isAdded(book)) {
+                <p-button
+                  label="Add to Wanted"
+                  size="small"
+                  [fluid]="true"
+                  [loading]="isAdding(book)"
+                  (onClick)="addToWanted(book)"></p-button>
+              }
+              @if (!isInLibrary(book) && isAdded(book)) {
+                <p-tag value="Added ✓" severity="success" class="w-full text-center"></p-tag>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (hasMore) {
+    <div style="display:flex; justify-content:center; padding:2rem 0;">
+      <p-button label="Load More" icon="pi pi-chevron-down" outlined="true"
+                [loading]="loading" (onClick)="loadMore()"
+                [style]="{width:'320px', padding:'0.75rem 0'}"></p-button>
+    </div>
+  }
+</div>

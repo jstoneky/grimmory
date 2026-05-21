@@ -43,17 +43,16 @@
       "save": "",
       "collapseSeries": "",
       "gridColumns": "",
-      "gridItemSize": "",
       "bookTypeOverlay": "",
       "noBooks": "",
       "failedLibrary": "",
       "failedShelf": "",
+      "failedBooks": "",
       "activeFilters": "{{ count }} Actieve filters"
     },
     "tooltip": {
       "clearFilters": "Toegepaste filters wissen",
       "visibleColumns": "Zichtbare kolommen",
-      "displaySettings": "Weergave-instellingen",
       "selectSorting": "Selecteer sortering",
       "toggleView": "Schakel tussen raster- en tabelweergave",
       "search": "Zoeken",
@@ -614,7 +613,12 @@
   },
   "table": {
     "bookCoverAlt": "",
-    "statusPrefix": "",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "{{ status }}",
     "locked": "",
     "unlocked": "",
     "toast": {

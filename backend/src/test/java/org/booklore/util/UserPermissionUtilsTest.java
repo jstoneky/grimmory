@@ -90,6 +90,7 @@ class UserPermissionUtilsTest {
                 .permissionManageIcons(true)
                 .permissionManageFonts(true)
                 .permissionDemoUser(true)
+                .permissionManageAcquisition(true)
                 .permissionAdmin(true)
                 .build();
 
@@ -139,6 +140,7 @@ class UserPermissionUtilsTest {
             case MANAGE_ICONS -> builder.permissionManageIcons(value);
             case MANAGE_FONTS -> builder.permissionManageFonts(value);
             case DEMO_USER -> builder.permissionDemoUser(value);
+            case MANAGE_ACQUISITION -> builder.permissionManageAcquisition(value);
             case ADMIN -> builder.permissionAdmin(value);
             default -> throw new IllegalArgumentException("Test helper missing mapping for PermissionType: " + permissionType);
         }
@@ -187,6 +189,7 @@ class UserPermissionUtilsTest {
             case MANAGE_ICONS -> perms.setCanManageIcons(value);
             case MANAGE_FONTS -> perms.setCanManageFonts(value);
             case DEMO_USER -> perms.setDemoUser(value);
+            case MANAGE_ACQUISITION -> perms.setCanManageAcquisition(value);
             case ADMIN -> perms.setAdmin(value);
             default -> throw new IllegalArgumentException("Test helper missing mapping for PermissionType: " + permissionType);
         }

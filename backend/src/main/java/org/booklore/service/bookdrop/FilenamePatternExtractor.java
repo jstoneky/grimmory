@@ -21,6 +21,7 @@ import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.time.MonthDay;
 
 @Slf4j
 @Service
@@ -428,7 +429,7 @@ public class FilenamePatternExtractor {
     private void setSeriesNumber(BookMetadata metadata, String value) {
         try {
             metadata.setSeriesNumber(Float.parseFloat(value));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
         }
     }
 
@@ -445,7 +446,7 @@ public class FilenamePatternExtractor {
         try {
             if ("yyyy".equals(detectedFormat)) {
                 Year year = Year.parse(value, DateTimeFormatter.ofPattern("yyyy"));
-                metadata.setPublishedDate(year.atMonthDay(java.time.MonthDay.of(1, 1)));
+                metadata.setPublishedDate(year.atMonthDay(MonthDay.of(1, 1)));
                 return;
             }
             
@@ -590,7 +591,7 @@ public class FilenamePatternExtractor {
     private void setSeriesTotal(BookMetadata metadata, String value) {
         try {
             metadata.setSeriesTotal(Integer.parseInt(value));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
         }
     }
 

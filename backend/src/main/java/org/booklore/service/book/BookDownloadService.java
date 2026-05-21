@@ -34,14 +34,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.io.ByteArrayOutputStream;
+import org.springframework.core.io.ByteArrayResource;
 
 @Slf4j
 @AllArgsConstructor
 @Service
 public class BookDownloadService {
 
+    private static final Pattern NON_ALPHANUMERIC_PATTERN = Pattern.compile("[^a-zA-Z0-9\\-_]");
+    private static final Pattern ASCII_ONLY_PATTERN = Pattern.compile("\\p{ASCII}*");
     private final BookRepository bookRepository;
     private final BookFileRepository bookFileRepository;
     private final KepubConversionService kepubConversionService;
@@ -137,7 +142,7 @@ public class BookDownloadService {
     }
 
     private String getContentDisposition(String filename) {
-        Charset charset = filename.matches("\\p{ASCII}*") ?
+        Charset charset = ASCII_ONLY_PATTERN.matcher(filename).matches() ?
                 StandardCharsets.US_ASCII : StandardCharsets.UTF_8;
 
         return ContentDisposition.builder("attachment")
@@ -182,7 +187,7 @@ public class BookDownloadService {
         String bookTitle = bookEntity.getMetadata() != null && bookEntity.getMetadata().getTitle() != null
                 ? bookEntity.getMetadata().getTitle()
                 : "book-" + bookId;
-        String safeTitle = bookTitle.replaceAll("[^a-zA-Z0-9\\-_]", "_");
+        String safeTitle = NON_ALPHANUMERIC_PATTERN.matcher(bookTitle).replaceAll("_");
         String zipFileName = safeTitle + ".zip";
 
         response.setContentType("application/zip");
@@ -329,7 +334,7 @@ public class BookDownloadService {
     }
 
     private ResponseEntity<Resource> downloadFolderAsZip(Path folderPath, String folderName) throws IOException {
-        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try (ZipOutputStream zos = new ZipOutputStream(baos)) {
             // Get all files in the folder, sorted by name
@@ -347,7 +352,7 @@ public class BookDownloadService {
         }
 
         byte[] zipBytes = baos.toByteArray();
-        Resource resource = new org.springframework.core.io.ByteArrayResource(zipBytes);
+        Resource resource = new ByteArrayResource(zipBytes);
 
         String zipFileName = folderName + ".zip";
 

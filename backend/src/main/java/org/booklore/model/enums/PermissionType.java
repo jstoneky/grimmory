@@ -23,6 +23,7 @@ public enum PermissionType {
     MANAGE_GLOBAL_PREFERENCES("permissionManageGlobalPreferences"),
     MANAGE_ICONS("permissionManageIcons"),
     MANAGE_FONTS("permissionManageFonts"),
+    MANAGE_ACQUISITION("permissionManageAcquisition"),
     DEMO_USER("permissionDemoUser");
 
     private final String entityField;

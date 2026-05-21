@@ -10,6 +10,7 @@ public enum AppSettingKey {
     // @formatter:off
     // ADMIN only (public settings)
     OIDC_PROVIDER_DETAILS               ("oidc_provider_details",                true,  true,  List.of(PermissionType.ADMIN)),
+    OIDC_REDIRECT_URIS                  ("oidc_redirect_uris",                   true,  false, List.of(PermissionType.ADMIN)),
     OIDC_ENABLED                        ("oidc_enabled",                         false, true,  List.of(PermissionType.ADMIN)),
     OIDC_AUTO_PROVISION_DETAILS         ("oidc_auto_provision_details",          true,  false, List.of(PermissionType.ADMIN)),
     OIDC_SESSION_DURATION_HOURS         ("oidc_session_duration_hours",          false, false, List.of(PermissionType.ADMIN)),
@@ -30,6 +31,8 @@ public enum AppSettingKey {
     UPLOAD_FILE_PATTERN                 ("upload_file_pattern",                  false, false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
     MOVE_FILE_PATTERN                   ("move_file_pattern",                    false, false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
     METADATA_DOWNLOAD_ON_BOOKDROP       ("metadata_download_on_bookdrop",        false, false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
+    BOOKDROP_AUTO_IMPORT_LIBRARY_ID     ("bookdrop_auto_import_library_id",      false, false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
+    BOOKDROP_AUTO_IMPORT_PATH_ID        ("bookdrop_auto_import_path_id",         false, false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
     METADATA_PROVIDER_SPECIFIC_FIELDS   ("metadata_provider_specific_fields",    true,  false, List.of(PermissionType.ADMIN, PermissionType.MANAGE_METADATA_CONFIG)),
 
     // ADMIN + MANAGE_GLOBAL_PREFERENCES

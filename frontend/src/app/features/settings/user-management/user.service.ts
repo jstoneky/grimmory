@@ -131,6 +131,7 @@ export interface PdfReaderSetting {
   pageSpread: PageSpread;
   pageZoom: string;
   showSidebar: boolean;
+  scrollLayout?: 'vertical' | 'horizontal';
 }
 
 export enum PdfPageViewMode {
@@ -351,6 +352,7 @@ export interface User {
     canBulkResetBookloreReadProgress?: boolean;
     canBulkResetKoReaderReadProgress?: boolean;
     canBulkResetBookReadStatus?: boolean;
+    canManageAcquisition?: boolean;
   };
   userSettings: UserSettings;
   provisioningMethod?: 'LOCAL' | 'OIDC' | 'REMOTE';

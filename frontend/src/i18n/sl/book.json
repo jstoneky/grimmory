@@ -43,17 +43,16 @@
       "save": "Shrani",
       "collapseSeries": "Strni zbirke",
       "gridColumns": "Stolpci mreže",
-      "gridItemSize": "Velikost elementov",
       "bookTypeOverlay": "Oznaka formata knjige",
       "noBooks": "Ta zbirka nima knjig!",
       "failedLibrary": "Napaka pri nalaganju knjig iz knjižnice!",
       "failedShelf": "Napaka pri nalaganju knjig s police!",
+      "failedBooks": "",
       "activeFilters": "{{ count }} aktivnih filtrov"
     },
     "tooltip": {
       "clearFilters": "Počisti uporabljene filtre",
       "visibleColumns": "Vidni stolpci",
-      "displaySettings": "Nastavitve prikaza",
       "selectSorting": "Izberi razvrščanje",
       "toggleView": "Preklopi med mrežnim in tabelarnim prikazom",
       "search": "Išči",
@@ -619,7 +618,12 @@
   },
   "table": {
     "bookCoverAlt": "Naslovnica knjige",
-    "statusPrefix": "Status: ",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "Status: {{ status }}",
     "locked": "Zaklenjeno",
     "unlocked": "Odklenjeno",
     "toast": {

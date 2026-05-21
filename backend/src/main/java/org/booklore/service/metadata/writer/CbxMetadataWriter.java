@@ -46,7 +46,7 @@ public class CbxMetadataWriter implements MetadataWriter {
     static {
         try {
             JAXB_CONTEXT = JAXBContext.newInstance(ComicInfo.class);
-        } catch (jakarta.xml.bind.JAXBException e) {
+        } catch (JAXBException e) {
             throw new RuntimeException("Failed to initialize JAXB Context", e);
         }
     }
@@ -449,7 +449,7 @@ public class CbxMetadataWriter implements MetadataWriter {
         // Ensure 2-space indentation if possible
         try {
             marshaller.setProperty("com.sun.xml.bind.indentString", "  ");
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             log.debug("Custom indentation property not supported via 'com.sun.xml.bind.indentString'");
         }
         

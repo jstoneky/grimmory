@@ -43,17 +43,16 @@
       "save": "Spara",
       "collapseSeries": "Kollapsa serier",
       "gridColumns": "Rutnätskolumner",
-      "gridItemSize": "Rutnätsstorlek",
       "bookTypeOverlay": "Filformats-overlay",
       "noBooks": "Denna samling har inga böcker!",
       "failedLibrary": "Kunde inte ladda bibliotekets böcker!",
       "failedShelf": "Kunde inte ladda hyllans böcker!",
+      "failedBooks": "",
       "activeFilters": "{{ count }} aktiva filter"
     },
     "tooltip": {
       "clearFilters": "Rensa tillämpade filter",
       "visibleColumns": "Synliga kolumner",
-      "displaySettings": "Visningsinställningar",
       "selectSorting": "Välj sortering",
       "toggleView": "Växla mellan rutnäts- och tabellvy",
       "search": "Sök",
@@ -619,7 +618,12 @@
   },
   "table": {
     "bookCoverAlt": "Bokomslag",
-    "statusPrefix": "Status: ",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "Status: {{ status }}",
     "locked": "Låst",
     "unlocked": "Upplåst",
     "toast": {

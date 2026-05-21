@@ -27,7 +27,7 @@ describe('app routes', () => {
     const shellRoute = routes.find(route => route.path === '' && Array.isArray(route.children));
     const children = shellRoute?.children ?? [];
 
-    expect(children).toHaveLength(17);
+    expect(children).toHaveLength(19);
     expect(children.find(route => route.path === 'dashboard')?.canActivate).toEqual([AuthGuard]);
     expect(children.find(route => route.path === 'all-books')?.canActivate).toEqual([AuthGuard]);
     expect(children.find(route => route.path === 'magic-shelf/:magicShelfId/books')?.canActivate).toEqual([AuthGuard]);

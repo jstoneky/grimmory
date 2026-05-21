@@ -184,6 +184,7 @@ export interface AppSettings {
   remoteAuthEnabled: boolean;
   oidcEnabled: boolean;
   oidcProviderDetails: OidcProviderDetails;
+  oidcRedirectUris: string[];
   oidcAutoProvisionDetails: OidcAutoProvisionDetails;
   maxFileUploadSizeInMb: number;
   metadataProviderSettings: MetadataProviderSettings;
@@ -193,6 +194,8 @@ export interface AppSettings {
   koboSettings: KoboSettings;
   coverCroppingSettings: CoverCroppingSettings;
   metadataDownloadOnBookdrop: boolean;
+  bookdropAutoImportLibraryId: number | null;
+  bookdropAutoImportPathId: number | null;
   metadataProviderSpecificFields: MetadataProviderSpecificFields;
   oidcSessionDurationHours: number | null;
   oidcGroupSyncMode: string | null;
@@ -233,12 +236,15 @@ export enum AppSettingKey {
   KOMGA_GROUP_UNKNOWN = 'KOMGA_GROUP_UNKNOWN',
   OIDC_ENABLED = 'OIDC_ENABLED',
   OIDC_PROVIDER_DETAILS = 'OIDC_PROVIDER_DETAILS',
+  OIDC_REDIRECT_URIS = 'OIDC_REDIRECT_URIS',
   OIDC_AUTO_PROVISION_DETAILS = 'OIDC_AUTO_PROVISION_DETAILS',
   MAX_FILE_UPLOAD_SIZE_IN_MB = 'MAX_FILE_UPLOAD_SIZE_IN_MB',
   METADATA_PROVIDER_SETTINGS = 'METADATA_PROVIDER_SETTINGS',
   METADATA_MATCH_WEIGHTS = 'METADATA_MATCH_WEIGHTS',
   METADATA_PERSISTENCE_SETTINGS = 'METADATA_PERSISTENCE_SETTINGS',
   METADATA_DOWNLOAD_ON_BOOKDROP = 'METADATA_DOWNLOAD_ON_BOOKDROP',
+  BOOKDROP_AUTO_IMPORT_LIBRARY_ID = 'BOOKDROP_AUTO_IMPORT_LIBRARY_ID',
+  BOOKDROP_AUTO_IMPORT_PATH_ID = 'BOOKDROP_AUTO_IMPORT_PATH_ID',
   METADATA_PUBLIC_REVIEWS_SETTINGS = 'METADATA_PUBLIC_REVIEWS_SETTINGS',
   KOBO_SETTINGS = 'KOBO_SETTINGS',
   COVER_CROPPING_SETTINGS = 'COVER_CROPPING_SETTINGS',

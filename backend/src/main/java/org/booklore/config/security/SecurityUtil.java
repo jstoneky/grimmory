@@ -55,6 +55,11 @@ public class SecurityUtil {
         return user != null && user.getPermissions().isCanManageFonts();
     }
 
+    public boolean canManageAcquisition() {
+        var user = getCurrentUser();
+        return user != null && user.getPermissions().isCanManageAcquisition();
+    }
+
     public boolean canSyncKoReader() {
         var user = getCurrentUser();
         return user != null && user.getPermissions().isCanSyncKoReader();

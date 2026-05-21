@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.grimmory.pdfium4j.PdfDocument;
 import org.grimmory.pdfium4j.XmpMetadataWriter;
 import org.grimmory.pdfium4j.model.MetadataTag;
-import org.grimmory.pdfium4j.model.SaveOptions;
 import org.grimmory.pdfium4j.model.XmpMetadata;
 import org.booklore.model.MetadataClearFlags;
 import org.booklore.model.dto.settings.MetadataPersistenceSettings;
@@ -23,12 +22,17 @@ import java.nio.file.StandardCopyOption;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class PdfMetadataWriter implements MetadataWriter {
 
+    private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d+");
+    private static final Pattern TRAILING_DOT_PATTERN = Pattern.compile("\\.$");
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static final Pattern TRAILING_ZEROS_PATTERN = Pattern.compile("0+$");
     private final AppSettingService appSettingService;
 
     @Override
@@ -59,7 +63,7 @@ public class PdfMetadataWriter implements MetadataWriter {
         try (PdfDocument doc = PdfDocument.open(filePath)) {
             applyMetadataToDocument(doc, metadataEntity, clear);
             tempPath = Files.createTempFile(parentDir, ".pdfmeta-", ".pdf");
-            doc.save(tempPath, SaveOptions.SKIP_VALIDATION);
+            doc.save(tempPath);
             Files.move(tempPath, filePath, StandardCopyOption.REPLACE_EXISTING);
             tempPath = null;
             log.info("Successfully embedded metadata into PDF: {}", file.getName());
@@ -189,7 +193,7 @@ public class PdfMetadataWriter implements MetadataWriter {
         helper.copyAuthors(clear != null && clear.isAuthors(), a -> {
             if (a != null && !a.isEmpty()) {
                 authors[0] = a.stream()
-                        .map(name -> name.replaceAll("\\s+", " ").trim())
+                        .map(name -> WHITESPACE_PATTERN.matcher(name).replaceAll(" ").trim())
                         .filter(name -> !name.isBlank())
                         .toList();
             }
@@ -213,23 +217,18 @@ public class PdfMetadataWriter implements MetadataWriter {
         // Booklore namespace simple fields
         addBookloreSimpleFields(customFields, helper, clear, metadata);
 
-        XmpMetadata xmpMeta = new XmpMetadata(
-                Optional.ofNullable(title[0]),
-                authors[0] != null ? authors[0] : List.of(),
-                Optional.ofNullable(description[0]),
-                subjects[0] != null ? subjects[0] : List.of(),
-                Optional.ofNullable(publisher[0]),
-                Optional.ofNullable(language[0]),
-                Optional.ofNullable(date[0]),
-                Optional.empty(),
-                List.of(),
-                Optional.empty(),
-                Map.of(),
-                customFields
-        );
+        XmpMetadata xmpMeta = XmpMetadata.builder()
+                .title(title[0])
+                .creators(authors[0] != null ? authors[0] : List.of())
+                .description(description[0])
+                .subjects(subjects[0] != null ? subjects[0] : List.of())
+                .publisher(publisher[0])
+                .language(language[0])
+                .date(date[0])
+                .customFields(customFields)
+                .build();
 
-        XmpMetadataWriter xmpWriter = new XmpMetadataWriter()
-                .registerNamespace(BookLoreMetadata.NS_PREFIX, BookLoreMetadata.NS_URI);
+        XmpMetadataWriter xmpWriter = new XmpMetadataWriter();
         String xmpPacket = xmpWriter.write(xmpMeta);
 
         // Inject RDF Bag elements for tags/moods (not supported as simple custom fields)
@@ -358,7 +357,7 @@ public class PdfMetadataWriter implements MetadataWriter {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
-    private static final java.util.regex.Pattern TIMESTAMP_PATTERN = java.util.regex.Pattern.compile(
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile(
             "<xmp:(MetadataDate|ModifyDate)>[^<]*</xmp:(MetadataDate|ModifyDate)>");
 
     private boolean isXmpMetadataDifferent(String existingXmp, String newXmp) {
@@ -406,7 +405,7 @@ public class PdfMetadataWriter implements MetadataWriter {
         // For decimals, show up to 2 decimal places but trim trailing zeros
         String formatted = String.format(Locale.US, "%.2f", number);
         // Remove trailing zeros after decimal point: "1.50" -> "1.5"
-        formatted = formatted.replaceAll("0+$", "").replaceAll("\\.$", "");
+        formatted = TRAILING_DOT_PATTERN.matcher(TRAILING_ZEROS_PATTERN.matcher(formatted).replaceAll("")).replaceAll("");
         return formatted;
     }
 
@@ -427,7 +426,7 @@ public class PdfMetadataWriter implements MetadataWriter {
         if (sep < 0) sep = goodreadsId.indexOf('.');
         if (sep > 0) {
             String numericPart = goodreadsId.substring(0, sep);
-            if (numericPart.matches("\\d+")) {
+            if (NUMERIC_PATTERN.matcher(numericPart).matches()) {
                 return numericPart;
             }
         }

@@ -15,7 +15,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/grimmory/grimmory?color=2496ED&style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/grimmory/grimmory)
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/9YJ7HB4n8T)
 
-[Documentation](https://grimmory.org/docs) · [Quick Start](docs/QUICKSTART.md) · [Discord](https://discord.gg/9YJ7HB4n8T) · [Releases](https://github.com/grimmory-tools/grimmory/releases)
+[Documentation](https://grimmory.org/docs) · [Quick Start](#quick-start) · [Discord](https://discord.gg/9YJ7HB4n8T) · [Releases](https://github.com/grimmory-tools/grimmory/releases)
 
 <!-- ![Grimmory Demo](assets/demo.gif) -->
 
@@ -34,6 +34,7 @@
 | **Multi-User** | Separate shelves, progress, and preferences per user with local or OIDC authentication |
 | **BookDrop** | Drop files into a watched folder and Grimmory detects, enriches, and queues them for import automatically |
 | **One-Click Sharing** | Send any book to a Kindle, an email address, or another user directly from the interface |
+| **Usenet Acquisition** | Search for books by title, author, or ISBN, add them to a wanted list, and let Grimmory find and download them automatically via Newznab indexers and SABnzbd |
 
 ### Supported Formats
 
@@ -144,7 +145,6 @@ services:
 
   mariadb:
     image: lscr.io/linuxserver/mariadb:11.4.5
-    container_name: mariadb
     environment:
       - PUID=${DB_USER_ID}
       - PGID=${DB_GROUP_ID}
@@ -169,7 +169,7 @@ services:
 docker compose up -d
 ```
 
-Open http://localhost:6060, create your admin account, and start building your library.
+Open http://localhost:6060, create your admin account, and start building your library. (All libraries must be created within directories mounted on the host, e.g. the `/books/` directory in the sample `docker-compose.yml` above.)
 
 Additional deployment examples:
 
@@ -231,6 +231,52 @@ Mount the volume in `docker-compose.yml`:
 ```yaml
 volumes:
   - ./bookdrop:/bookdrop
+```
+
+---
+
+## Usenet Acquisition
+
+Grimmory can automatically search for and download books from Usenet. Configure one or more Newznab-compatible indexers and a SABnzbd download client, then add books to your Wanted list — Grimmory handles the rest.
+
+```mermaid
+graph LR
+    A[Discover Books] --> B[Add to Wanted]
+    B --> C[Newznab Search]
+    C --> D[Confidence Scoring]
+    D --> E[SABnzbd Download]
+    E --> F[BookDrop Import]
+```
+
+| Step | What Happens |
+| --- | --- |
+| 1. Discover | Search Open Library or Google Books by title, author, or ISBN from the Discover Books page |
+| 2. Want | Add a book to the Wanted list from search results or manually |
+| 3. Search | Grimmory queries enabled Newznab indexers using title, author, and ISBN |
+| 4. Score | Each NZB result is scored for confidence — penalising audiobooks, rewarding ISBN matches |
+| 5. Download | Results above the confidence threshold are sent to SABnzbd automatically |
+| 6. Import | Completed downloads land in the BookDrop folder for automatic import into your library |
+
+The scheduler runs nightly at 3 AM and retries `Not Found` books up to 5 times before marking them permanently failed. You can also trigger a search for any individual book or run the full batch job on demand from the Wanted Books page.
+
+### Acquisition Setup
+
+1. Navigate to **Settings → Acquisition**
+2. Add a Newznab indexer (URL + API key)
+3. Add a SABnzbd download client (URL + API key + category)
+4. Set the SABnzbd category's completed download folder to match your BookDrop path
+
+Until both an enabled indexer and an enabled download client are configured, scheduled and manual searches are skipped — wanted books stay in `WANTED` and the reason is recorded in each book's job history.
+
+### Acquisition Permissions
+
+The Discover and Wanted Books pages are gated by a `Discover & Wanted Books` permission. Admins always have access; for non-admin users, grant the permission from **Settings → Users → Edit user → Acquisition**. The same permission also gates the acquisition API endpoints.
+
+```yaml
+# docker-compose.yml — map both volumes to the same path
+volumes:
+  - ./bookdrop:/bookdrop        # Grimmory BookDrop
+  # Set SABnzbd "books" category folder to the same host path: ./bookdrop
 ```
 
 ---

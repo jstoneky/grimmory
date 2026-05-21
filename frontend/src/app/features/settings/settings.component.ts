@@ -18,10 +18,11 @@ import {LibraryMetadataSettingsComponent} from './library-metadata-settings/libr
 import {PageTitleService} from "../../shared/service/page-title.service";
 import {EmailV2Component} from './email-v2/email-v2.component';
 import {TranslocoDirective} from '@jsverse/transloco';
+import {AcquisitionSettingsComponent} from './acquisition-settings/acquisition-settings.component';
 
 export enum SettingsTab {
-  ReaderSettings = 'reader',
   ViewPreferences = 'view',
+  ReaderSettings = 'reader',
   DeviceSettings = 'device',
   UserManagement = 'user',
   EmailSettingsV2 = 'email-v2',
@@ -33,6 +34,7 @@ export enum SettingsTab {
   OpdsV2 = 'opds',
   Tasks = 'task',
   AuditLogs = 'audit-logs',
+  AcquisitionSettings = 'acquisition',
 }
 
 @Component({
@@ -56,7 +58,8 @@ export enum SettingsTab {
     TaskManagementComponent,
     AuditLogsComponent,
     EmailV2Component,
-    TranslocoDirective
+    TranslocoDirective,
+    AcquisitionSettingsComponent
   ],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
@@ -71,7 +74,7 @@ export class SettingsComponent implements OnInit {
   SettingsTab = SettingsTab;
 
   private validTabs = Object.values(SettingsTab);
-  private _activeTab = signal<SettingsTab>(SettingsTab.ReaderSettings);
+  private _activeTab = signal<SettingsTab>(SettingsTab.ViewPreferences);
 
   visitedTabs = signal<Set<SettingsTab>>(new Set([
     SettingsTab.UserManagement,
@@ -120,7 +123,7 @@ export class SettingsComponent implements OnInit {
       if (this.validTabs.includes(tabParam)) {
         this._activeTab.set(tabParam as SettingsTab);
       } else {
-        const defaultTab = SettingsTab.ReaderSettings;
+        const defaultTab = SettingsTab.ViewPreferences;
         this._activeTab.set(defaultTab);
         this.router.navigate([], {
           relativeTo: this.route,

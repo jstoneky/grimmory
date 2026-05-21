@@ -11,6 +11,7 @@ import {MetadataPersistenceSettingsComponent} from './metadata-persistence-setti
 import {PublicReviewsSettingsComponent} from './public-reviews-settings/public-reviews-settings-component';
 import {MetadataProviderFieldSelectorComponent} from '../../metadata/component/metadata-provider-field-selector/metadata-provider-field-selector.component';
 import {TranslocoDirective} from '@jsverse/transloco';
+import {BookdropAutoImportSettingsComponent} from './bookdrop-auto-import-settings/bookdrop-auto-import-settings.component';
 
 @Component({
   selector: 'app-metadata-settings-component',
@@ -23,7 +24,8 @@ import {TranslocoDirective} from '@jsverse/transloco';
     MetadataPersistenceSettingsComponent,
     PublicReviewsSettingsComponent,
     MetadataProviderFieldSelectorComponent,
-    TranslocoDirective
+    TranslocoDirective,
+    BookdropAutoImportSettingsComponent,
   ],
   templateUrl: './metadata-settings-component.html',
   styleUrl: './metadata-settings-component.scss'

@@ -80,6 +80,7 @@ public class UserProvisioningService {
         perms.setPermissionBulkResetBookloreReadProgress(true);
         perms.setPermissionBulkResetKoReaderReadProgress(true);
         perms.setPermissionBulkResetBookReadStatus(true);
+        perms.setPermissionManageAcquisition(true);
 
         user.setPermissions(perms);
         createUser(user);
@@ -129,6 +130,7 @@ public class UserProvisioningService {
         permissions.setPermissionBulkResetBookloreReadProgress(request.isPermissionBulkResetBookloreReadProgress());
         permissions.setPermissionBulkResetKoReaderReadProgress(request.isPermissionBulkResetKoReaderReadProgress());
         permissions.setPermissionBulkResetBookReadStatus(request.isPermissionBulkResetBookReadStatus());
+        permissions.setPermissionManageAcquisition(request.isPermissionManageAcquisition());
         user.setPermissions(permissions);
 
         if (request.getSelectedLibraries() != null && !request.getSelectedLibraries().isEmpty()) {
@@ -175,6 +177,7 @@ public class UserProvisioningService {
             perms.setPermissionManageGlobalPreferences(defaultPermissions.contains("permissionManageGlobalPreferences"));
             perms.setPermissionManageIcons(defaultPermissions.contains("permissionManageIcons"));
             perms.setPermissionManageFonts(defaultPermissions.contains("permissionManageFonts"));
+            perms.setPermissionManageAcquisition(defaultPermissions.contains("permissionManageAcquisition"));
         }
         user.setPermissions(perms);
 
@@ -238,6 +241,7 @@ public class UserProvisioningService {
             permissions.setPermissionManageGlobalPreferences(defaultPermissions.contains("permissionManageGlobalPreferences"));
             permissions.setPermissionManageIcons(defaultPermissions.contains("permissionManageIcons"));
             permissions.setPermissionManageFonts(defaultPermissions.contains("permissionManageFonts"));
+            permissions.setPermissionManageAcquisition(defaultPermissions.contains("permissionManageAcquisition"));
         } else {
             permissions.setPermissionUpload(false);
             permissions.setPermissionDownload(false);
@@ -256,6 +260,7 @@ public class UserProvisioningService {
             permissions.setPermissionManageGlobalPreferences(false);
             permissions.setPermissionManageIcons(false);
             permissions.setPermissionManageFonts(false);
+            permissions.setPermissionManageAcquisition(false);
         }
 
         permissions.setPermissionAdmin(isAdmin);

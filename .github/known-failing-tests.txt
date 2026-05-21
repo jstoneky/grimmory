@@ -1,0 +1,15 @@
+# Frontend tests that are pre-existing failures on upstream's master.
+# Listed here so the sync-and-publish gate doesn't block on drift we
+# didn't introduce. Editing the upstream test files would just create
+# merge conflicts later.
+#
+# Format: <classname> :: <name>
+#   classname = the spec file path (from the JUnit testcase classname attribute)
+#   name      = the test name (from the JUnit testcase name attribute, with
+#               nested describes joined by " > ")
+#
+# When upstream fixes one of these, the validator will fail with
+# "Allowlist entries that now pass — remove these lines:" and you can
+# delete the entry. New failures (yours or upstream's) will fail the
+# gate as a real regression.
+

@@ -4,11 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.booklore.config.security.service.AuthenticationService;
 import org.booklore.exception.ApiError;
-import org.booklore.model.dto.BookLoreUser;
-import org.booklore.model.dto.CompletionRaceSessionDto;
-import org.booklore.model.dto.PageTurnerSessionDto;
+import org.booklore.model.dto.*;
 import org.booklore.model.dto.request.ReadingSessionRequest;
-import org.booklore.model.dto.ProgressPercentDto;
 import org.booklore.model.dto.response.*;
 import org.booklore.model.entity.BookEntity;
 import org.booklore.model.entity.BookLoreUserEntity;
@@ -38,6 +35,7 @@ import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -73,8 +71,8 @@ public class ReadingSessionService {
         return computeMonthBounds(year, month);
     }
 
-    private List<ReadingSessionHeatmapResponse> groupByLocalDate(List<Instant> startTimes, ZoneId zone) {
-        return startTimes.stream()
+    private List<ReadingSessionHeatmapResponse> groupByLocalDate(Stream<Instant> startTimes, ZoneId zone) {
+        return startTimes
                 .map(instant -> instant.atZone(zone).toLocalDate())
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                 .entrySet().stream()
@@ -83,7 +81,41 @@ public class ReadingSessionService {
                         .count(e.getValue())
                         .build())
                 .sorted(Comparator.comparing(ReadingSessionHeatmapResponse::getDate))
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    private List<PeakHoursResponse> computePeakHours(List<SessionTimestampDto> sessions, ZoneId zone) {
+        Map<Integer, long[]> hourlyStats = new TreeMap<>(); // hour -> [count, duration]
+        for (var s : sessions) {
+            int hour = s.getStartTime().atZone(zone).getHour();
+            hourlyStats.merge(hour, new long[]{1, s.getDurationSeconds()},
+                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
+        }
+        return hourlyStats.entrySet().stream()
+                .map(e -> PeakHoursResponse.builder()
+                        .hourOfDay(e.getKey())
+                        .sessionCount(e.getValue()[0])
+                        .totalDurationSeconds(e.getValue()[1])
+                        .build())
+                .toList();
+    }
+
+    private List<FavoriteReadingDaysResponse> computeFavoriteDays(List<SessionTimestampDto> sessions, ZoneId zone) {
+        Map<DayOfWeek, long[]> dailyStats = new EnumMap<>(DayOfWeek.class);
+        for (var s : sessions) {
+            DayOfWeek dow = s.getStartTime().atZone(zone).getDayOfWeek();
+            dailyStats.merge(dow, new long[]{1, s.getDurationSeconds()},
+                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
+        }
+        return dailyStats.entrySet().stream()
+                .map(e -> FavoriteReadingDaysResponse.builder()
+                        .dayOfWeek(toSundayFirstDow(e.getKey()))
+                        .dayName(e.getKey().getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+                        .sessionCount(e.getValue()[0])
+                        .totalDurationSeconds(e.getValue()[1])
+                        .build())
+                .sorted(Comparator.comparingInt(FavoriteReadingDaysResponse::getDayOfWeek))
+                .toList();
     }
 
     private static int toSundayFirstDow(DayOfWeek dow) {
@@ -123,9 +155,9 @@ public class ReadingSessionService {
         ZoneId zone = ZoneId.systemDefault();
         PeriodBounds bounds = computeYearBounds(year);
 
-        return groupByLocalDate(
-                readingSessionRepository.findSessionStartTimesByUserAndPeriod(userId, bounds.start(), bounds.end()),
-                zone);
+        try (var startTimes = readingSessionRepository.findReadingSessionStartTimesByUserAndPeriod(userId, bounds.start(), bounds.end())) {
+            return groupByLocalDate(startTimes, zone);
+        }
     }
 
     public List<ReadingSessionHeatmapResponse> getSessionHeatmapForMonth(int year, int month) {
@@ -133,9 +165,9 @@ public class ReadingSessionService {
         ZoneId zone = ZoneId.systemDefault();
         PeriodBounds bounds = computeMonthBounds(year, month);
 
-        return groupByLocalDate(
-                readingSessionRepository.findSessionStartTimesByUserAndPeriod(userId, bounds.start(), bounds.end()),
-                zone);
+        try (var startTimes = readingSessionRepository.findReadingSessionStartTimesByUserAndPeriod(userId, bounds.start(), bounds.end())) {
+            return groupByLocalDate(startTimes, zone);
+        }
     }
 
     public List<ReadingSessionTimelineResponse> getSessionTimelineForWeek(int year, int week) {
@@ -158,7 +190,7 @@ public class ReadingSessionService {
                         .totalSessions(dto.getTotalSessions())
                         .totalDurationSeconds(dto.getTotalDurationSeconds())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ReadingSpeedResponse> getReadingSpeedForYear(int year) {
@@ -175,7 +207,7 @@ public class ReadingSessionService {
                         .avgProgressPerMinute(dto.getAvgProgressPerMinute())
                         .totalSessions(dto.getTotalSessions())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<PeakHoursResponse> getPeakReadingHours(Integer year, Integer month) {
@@ -183,22 +215,8 @@ public class ReadingSessionService {
         ZoneId zone = ZoneId.systemDefault();
         PeriodBounds bounds = computeOptionalBounds(year, month);
 
-        var sessions = readingSessionRepository.findSessionTimestampsByUser(userId, bounds.start(), bounds.end());
-
-        Map<Integer, long[]> hourlyTotals = new TreeMap<>();
-        for (var dto : sessions) {
-            int hour = dto.getStartTime().atZone(zone).getHour();
-            hourlyTotals.merge(hour, new long[]{1, dto.getDurationSeconds()},
-                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
-        }
-
-        return hourlyTotals.entrySet().stream()
-                .map(e -> PeakHoursResponse.builder()
-                        .hourOfDay(e.getKey())
-                        .sessionCount(e.getValue()[0])
-                        .totalDurationSeconds(e.getValue()[1])
-                        .build())
-                .collect(Collectors.toList());
+        var sessions = readingSessionRepository.findReadingSessionTimestampsByUser(userId, bounds.start(), bounds.end());
+        return computePeakHours(sessions, zone);
     }
 
     public List<FavoriteReadingDaysResponse> getFavoriteReadingDays(Integer year, Integer month) {
@@ -206,27 +224,8 @@ public class ReadingSessionService {
         ZoneId zone = ZoneId.systemDefault();
         PeriodBounds bounds = computeOptionalBounds(year, month);
 
-        var sessions = readingSessionRepository.findSessionTimestampsByUser(userId, bounds.start(), bounds.end());
-
-        Map<DayOfWeek, long[]> weekdayTotals = new EnumMap<>(DayOfWeek.class);
-        for (var dto : sessions) {
-            DayOfWeek dow = dto.getStartTime().atZone(zone).toLocalDate().getDayOfWeek();
-            weekdayTotals.merge(dow, new long[]{1, dto.getDurationSeconds()},
-                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
-        }
-
-        return weekdayTotals.entrySet().stream()
-                .map(entry -> {
-                    DayOfWeek dow = entry.getKey();
-                    return FavoriteReadingDaysResponse.builder()
-                            .dayOfWeek(toSundayFirstDow(dow))
-                            .dayName(dow.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
-                            .sessionCount(entry.getValue()[0])
-                            .totalDurationSeconds(entry.getValue()[1])
-                            .build();
-                })
-                .sorted(Comparator.comparingInt(FavoriteReadingDaysResponse::getDayOfWeek))
-                .collect(Collectors.toList());
+        var sessions = readingSessionRepository.findReadingSessionTimestampsByUser(userId, bounds.start(), bounds.end());
+        return computeFavoriteDays(sessions, zone);
     }
 
     public List<GenreStatisticsResponse> getGenreStatistics() {
@@ -248,7 +247,7 @@ public class ReadingSessionService {
                             .averageSessionsPerBook(Math.round(avgSessionsPerBook * 100.0) / 100.0)
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<CompletionTimelineResponse> getCompletionTimeline(int year) {
@@ -286,7 +285,7 @@ public class ReadingSessionService {
                     int cmp = b.getYear().compareTo(a.getYear());
                     return cmp != 0 ? cmp : b.getMonth().compareTo(a.getMonth());
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Page<ReadingSessionResponse> getReadingSessionsForBook(Long bookId, int page, int size) {
@@ -331,88 +330,106 @@ public class ReadingSessionService {
                         .month(dto.getMonth())
                         .count(dto.getCount())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<PageTurnerScoreResponse> getPageTurnerScores() {
         BookLoreUser authenticatedUser = authenticationService.getAuthenticatedUser();
         Long userId = authenticatedUser.getId();
 
-        var sessions = readingSessionRepository.findPageTurnerSessionsByUser(userId);
+        List<PageTurnerScoreResponse> responses = new ArrayList<>();
+        Set<Long> bookIdsToFetch = new HashSet<>();
 
-        Map<Long, List<PageTurnerSessionDto>> sessionsByBook = sessions.stream()
-                .collect(Collectors.groupingBy(PageTurnerSessionDto::getBookId, LinkedHashMap::new, Collectors.toList()));
+        try (var sessionStream = readingSessionRepository.findPageTurnerSessionsByUser(userId)) {
+            Iterator<PageTurnerSessionDto> it = sessionStream.iterator();
+            Long currentBookId = null;
+            List<PageTurnerSessionDto> currentBookSessions = new ArrayList<>();
 
-        Set<Long> bookIds = sessionsByBook.keySet();
-        Map<Long, List<String>> bookCategories = new HashMap<>();
-        if (!bookIds.isEmpty()) {
-            bookRepository.findAllWithMetadataByIds(bookIds).forEach(book -> {
+            while (it.hasNext()) {
+                PageTurnerSessionDto session = it.next();
+                if (currentBookId != null && !currentBookId.equals(session.getBookId())) {
+                    processPageTurnerBook(currentBookSessions, responses, bookIdsToFetch);
+                    currentBookSessions.clear();
+                }
+                currentBookId = session.getBookId();
+                currentBookSessions.add(session);
+            }
+            if (!currentBookSessions.isEmpty()) {
+                processPageTurnerBook(currentBookSessions, responses, bookIdsToFetch);
+            }
+        }
+
+        if (!bookIdsToFetch.isEmpty()) {
+            Map<Long, List<String>> bookCategories = new HashMap<>();
+            bookRepository.findAllWithMetadataByIds(bookIdsToFetch).forEach(book -> {
                 List<String> categories = book.getMetadata() != null && book.getMetadata().getCategories() != null
                         ? book.getMetadata().getCategories().stream()
                         .map(CategoryEntity::getName)
                         .sorted()
-                        .collect(Collectors.toList())
+                        .toList()
                         : List.of();
                 bookCategories.put(book.getId(), categories);
             });
+            responses.forEach(r -> r.setCategories(bookCategories.getOrDefault(r.getBookId(), List.of())));
         }
 
-        return sessionsByBook.entrySet().stream()
-                .filter(entry -> entry.getValue().size() >= 2)
-                .map(entry -> {
-                    Long bookId = entry.getKey();
-                    List<PageTurnerSessionDto> bookSessions = entry.getValue();
-                    PageTurnerSessionDto first = bookSessions.getFirst();
-
-                    List<Double> durations = bookSessions.stream()
-                            .map(s -> s.getDurationSeconds() != null ? s.getDurationSeconds().doubleValue() : 0.0)
-                            .collect(Collectors.toList());
-
-                    List<Double> gaps = new ArrayList<>();
-                    for (int i = 1; i < bookSessions.size(); i++) {
-                        Instant prevEnd = bookSessions.get(i - 1).getEndTime();
-                        Instant currStart = bookSessions.get(i).getStartTime();
-                        if (prevEnd != null && currStart != null) {
-                            gaps.add((double) ChronoUnit.HOURS.between(prevEnd, currStart));
-                        }
-                    }
-
-                    double sessionAcceleration = linearRegressionSlope(durations);
-                    double gapReduction = gaps.size() >= 2 ? linearRegressionSlope(gaps) : 0.0;
-
-                    int totalSessions = bookSessions.size();
-                    int lastQuarterStart = (int) Math.floor(totalSessions * 0.75);
-                    double firstThreeQuartersAvg = durations.subList(0, lastQuarterStart).stream()
-                            .mapToDouble(Double::doubleValue).average().orElse(0);
-                    double lastQuarterAvg = durations.subList(lastQuarterStart, totalSessions).stream()
-                            .mapToDouble(Double::doubleValue).average().orElse(0);
-                    boolean finishBurst = lastQuarterAvg > firstThreeQuartersAvg;
-
-                    double accelScore = Math.min(1.0, Math.max(0.0, (sessionAcceleration + 50) / 100.0));
-                    double gapScore = Math.min(1.0, Math.max(0.0, (-gapReduction + 50) / 100.0));
-                    double burstScore = finishBurst ? 1.0 : 0.0;
-
-                    int gripScore = (int) Math.round(
-                            Math.min(100, Math.max(0, accelScore * 35 + gapScore * 35 + burstScore * 30)));
-
-                    double avgDuration = durations.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-
-                    return PageTurnerScoreResponse.builder()
-                            .bookId(bookId)
-                            .bookTitle(first.getBookTitle())
-                            .categories(bookCategories.getOrDefault(bookId, List.of()))
-                            .pageCount(first.getPageCount())
-                            .personalRating(first.getPersonalRating())
-                            .gripScore(gripScore)
-                            .totalSessions((long) totalSessions)
-                            .avgSessionDurationSeconds(Math.round(avgDuration * 100.0) / 100.0)
-                            .sessionAcceleration(Math.round(sessionAcceleration * 100.0) / 100.0)
-                            .gapReduction(Math.round(gapReduction * 100.0) / 100.0)
-                            .finishBurst(finishBurst)
-                            .build();
-                })
+        return responses.stream()
                 .sorted(Comparator.comparingInt(PageTurnerScoreResponse::getGripScore).reversed())
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    private void processPageTurnerBook(List<PageTurnerSessionDto> bookSessions, List<PageTurnerScoreResponse> responses, Set<Long> bookIdsToFetch) {
+        if (bookSessions.size() < 2) return;
+
+        PageTurnerSessionDto first = bookSessions.getFirst();
+        Long bookId = first.getBookId();
+        bookIdsToFetch.add(bookId);
+
+        List<Double> durations = bookSessions.stream()
+                .map(s -> s.getDurationSeconds() != null ? s.getDurationSeconds().doubleValue() : 0.0)
+                .toList();
+
+        List<Double> gaps = new ArrayList<>();
+        for (int i = 1; i < bookSessions.size(); i++) {
+            Instant prevEnd = bookSessions.get(i - 1).getEndTime();
+            Instant currStart = bookSessions.get(i).getStartTime();
+            if (prevEnd != null && currStart != null) {
+                gaps.add((double) ChronoUnit.HOURS.between(prevEnd, currStart));
+            }
+        }
+
+        double sessionAcceleration = linearRegressionSlope(durations);
+        double gapReduction = gaps.size() >= 2 ? linearRegressionSlope(gaps) : 0.0;
+
+        int totalSessions = bookSessions.size();
+        int lastQuarterStart = (int) Math.floor(totalSessions * 0.75);
+        double firstThreeQuartersAvg = durations.subList(0, lastQuarterStart).stream()
+                .mapToDouble(Double::doubleValue).average().orElse(0);
+        double lastQuarterAvg = durations.subList(lastQuarterStart, totalSessions).stream()
+                .mapToDouble(Double::doubleValue).average().orElse(0);
+        boolean finishBurst = lastQuarterAvg > firstThreeQuartersAvg;
+
+        double accelScore = Math.min(1.0, Math.max(0.0, (sessionAcceleration + 50) / 100.0));
+        double gapScore = Math.min(1.0, Math.max(0.0, (-gapReduction + 50) / 100.0));
+        double burstScore = finishBurst ? 1.0 : 0.0;
+
+        int gripScore = (int) Math.round(
+                Math.min(100, Math.max(0, accelScore * 35 + gapScore * 35 + burstScore * 30)));
+
+        double avgDuration = durations.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+        responses.add(PageTurnerScoreResponse.builder()
+                .bookId(bookId)
+                .bookTitle(first.getBookTitle())
+                .pageCount(first.getPageCount())
+                .personalRating(first.getPersonalRating())
+                .gripScore(gripScore)
+                .totalSessions((long) totalSessions)
+                .avgSessionDurationSeconds(Math.round(avgDuration * 100.0) / 100.0)
+                .sessionAcceleration(Math.round(sessionAcceleration * 100.0) / 100.0)
+                .gapReduction(Math.round(gapReduction * 100.0) / 100.0)
+                .finishBurst(finishBurst)
+                .build());
     }
 
     private static final int COMPLETION_RACE_BOOK_LIMIT = 10;
@@ -421,38 +438,51 @@ public class ReadingSessionService {
         BookLoreUser authenticatedUser = authenticationService.getAuthenticatedUser();
         Long userId = authenticatedUser.getId();
 
-        var allSessions = readingSessionRepository.findCompletionRaceSessionsByUserAndYear(userId, year);
+        Deque<List<CompletionRaceSessionDto>> bookBuffer = new ArrayDeque<>();
 
-        // Collect unique book IDs in order of appearance, take last N (most recently finished)
-        LinkedHashSet<Long> allBookIds = allSessions.stream()
-                .map(CompletionRaceSessionDto::getBookId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        try (var sessionStream = readingSessionRepository.findCompletionRaceSessionsByUserAndYear(userId, year)) {
+            Iterator<CompletionRaceSessionDto> it = sessionStream.iterator();
+            Long currentBookId = null;
+            List<CompletionRaceSessionDto> currentBookSessions = new ArrayList<>();
 
-        Set<Long> limitedBookIds;
-        if (allBookIds.size() > COMPLETION_RACE_BOOK_LIMIT) {
-            limitedBookIds = allBookIds.stream()
-                    .skip(allBookIds.size() - COMPLETION_RACE_BOOK_LIMIT)
-                    .collect(Collectors.toSet());
-        } else {
-            limitedBookIds = allBookIds;
+            while (it.hasNext()) {
+                CompletionRaceSessionDto session = it.next();
+                if (currentBookId != null && !currentBookId.equals(session.getBookId())) {
+                    bookBuffer.addLast(new ArrayList<>(currentBookSessions));
+                    if (bookBuffer.size() > COMPLETION_RACE_BOOK_LIMIT) {
+                        bookBuffer.removeFirst();
+                    }
+                    currentBookSessions.clear();
+                }
+                currentBookId = session.getBookId();
+                currentBookSessions.add(session);
+            }
+            if (!currentBookSessions.isEmpty()) {
+                bookBuffer.addLast(currentBookSessions);
+                if (bookBuffer.size() > COMPLETION_RACE_BOOK_LIMIT) {
+                    bookBuffer.removeFirst();
+                }
+            }
         }
 
-        return allSessions.stream()
-                .filter(dto -> limitedBookIds.contains(dto.getBookId()))
+        return bookBuffer.stream()
+                .flatMap(List::stream)
                 .map(dto -> CompletionRaceResponse.builder()
                         .bookId(dto.getBookId())
                         .bookTitle(dto.getBookTitle())
                         .sessionDate(dto.getSessionDate())
                         .endProgress(dto.getEndProgress())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ReadingSessionHeatmapResponse> getReadingDates() {
         Long userId = authenticationService.getAuthenticatedUser().getId();
         ZoneId zone = ZoneId.systemDefault();
 
-        return groupByLocalDate(readingSessionRepository.findAllSessionStartTimesByUser(userId), zone);
+        try (var startTimes = readingSessionRepository.findAllReadingSessionStartTimesByUser(userId)) {
+            return groupByLocalDate(startTimes, zone);
+        }
     }
 
     public BookDistributionsResponse getBookDistributions() {
@@ -466,7 +496,7 @@ public class ReadingSessionService {
                         .rating(dto.getRating())
                         .count(dto.getCount())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         // Status distribution
         List<BookDistributionsResponse.StatusBucket> statusBuckets = userBookProgressRepository.findStatusDistributionByUser(userId)
@@ -475,7 +505,7 @@ public class ReadingSessionService {
                         .status(dto.getStatus().name())
                         .count(dto.getCount())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         // Progress distribution — coalesce to max across sources, then bucket
         List<ProgressPercentDto> progressRows = userBookProgressRepository.findAllProgressPercentsByUser(userId);
@@ -544,17 +574,19 @@ public class ReadingSessionService {
                             .dayOfWeek(toSundayFirstDow(zdt.getDayOfWeek()))
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ReadingStreakResponse getReadingStreak() {
         Long userId = authenticationService.getAuthenticatedUser().getId();
         ZoneId zone = ZoneId.systemDefault();
 
-        Set<LocalDate> readingDays = readingSessionRepository.findAllSessionStartTimesByUser(userId)
-                .stream()
-                .map(instant -> instant.atZone(zone).toLocalDate())
-                .collect(Collectors.toCollection(TreeSet::new));
+        Set<LocalDate> readingDays;
+        try (var startTimes = readingSessionRepository.findAllReadingSessionStartTimesByUser(userId)) {
+            readingDays = startTimes
+                    .map(instant -> instant.atZone(zone).toLocalDate())
+                    .collect(Collectors.toCollection(TreeSet::new));
+        }
 
         LocalDate today = LocalDate.now(zone);
 
@@ -626,7 +658,7 @@ public class ReadingSessionService {
                         .maxProgress(dto.getMaxProgress())
                         .readStatus(dto.getReadStatus())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private double linearRegressionSlope(List<Double> values) {
@@ -671,7 +703,7 @@ public class ReadingSessionService {
                         .sessions(e.getValue()[0])
                         .durationMinutes(Math.round(e.getValue()[1] / 60.0))
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<WeeklyListeningTrendResponse> getWeeklyListeningTrend(int weeks) {
@@ -701,7 +733,7 @@ public class ReadingSessionService {
                             .sessions(entry.getValue()[1])
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ListeningCompletionResponse getListeningCompletion() {
@@ -736,7 +768,7 @@ public class ReadingSessionService {
                 .totalAudiobooks(totalAudiobooks)
                 .completed(completed)
                 .inProgressCount(inProgressCount)
-                .inProgress(inProgress.stream().limit(10).collect(Collectors.toList()))
+                .inProgress(inProgress.stream().limit(10).toList())
                 .build();
     }
 
@@ -766,7 +798,7 @@ public class ReadingSessionService {
                             .totalListeningSeconds(listeningSeconds)
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ListeningFinishFunnelResponse getListeningFinishFunnel() {
@@ -804,26 +836,22 @@ public class ReadingSessionService {
         ZoneId zone = ZoneId.systemDefault();
         PeriodBounds bounds = computeOptionalBounds(year, month);
 
-        var sessions = readingSessionRepository.findListeningTimestampsByUser(userId, bounds.start(), bounds.end());
+        var sessions = readingSessionRepository.findListeningSessionTimestampsByUser(userId, bounds.start(), bounds.end());
+        return computePeakHours(sessions, zone);
+    }
 
-        Map<Integer, long[]> hourlyTotals = new TreeMap<>();
-        for (var dto : sessions) {
-            int hour = dto.getStartTime().atZone(zone).getHour();
-            hourlyTotals.merge(hour, new long[]{1, dto.getDurationSeconds()},
-                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
-        }
+    public List<FavoriteReadingDaysResponse> getListeningFavoriteDays(Integer year, Integer month) {
+        Long userId = authenticationService.getAuthenticatedUser().getId();
+        ZoneId zone = ZoneId.systemDefault();
+        PeriodBounds bounds = computeOptionalBounds(year, month);
 
-        return hourlyTotals.entrySet().stream()
-                .map(e -> PeakHoursResponse.builder()
-                        .hourOfDay(e.getKey())
-                        .sessionCount(e.getValue()[0])
-                        .totalDurationSeconds(e.getValue()[1])
-                        .build())
-                .collect(Collectors.toList());
+        var sessions = readingSessionRepository.findListeningSessionTimestampsByUser(userId, bounds.start(), bounds.end());
+        return computeFavoriteDays(sessions, zone);
     }
 
     public List<GenreStatisticsResponse> getListeningGenreStatistics() {
         Long userId = authenticationService.getAuthenticatedUser().getId();
+
         return readingSessionRepository.findListeningGenreStatisticsByUser(userId)
                 .stream()
                 .map(dto -> {
@@ -839,11 +867,12 @@ public class ReadingSessionService {
                             .averageSessionsPerBook(Math.round(avgSessionsPerBook * 100.0) / 100.0)
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ListeningAuthorResponse> getListeningAuthorStats() {
         Long userId = authenticationService.getAuthenticatedUser().getId();
+
         return readingSessionRepository.findListeningAuthorStatsByUser(userId)
                 .stream()
                 .map(dto -> ListeningAuthorResponse.builder()
@@ -852,7 +881,7 @@ public class ReadingSessionService {
                         .totalSessions(dto.getTotalSessions())
                         .totalDurationSeconds(dto.getTotalDurationSeconds())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<SessionScatterResponse> getListeningSessionScatter() {
@@ -869,7 +898,7 @@ public class ReadingSessionService {
                             .dayOfWeek(toSundayFirstDow(zdt.getDayOfWeek()))
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<LongestAudiobookResponse> getListeningLongestBooks() {
@@ -890,6 +919,6 @@ public class ReadingSessionService {
                             .progressPercent(Math.round(maxProg * 10.0) / 10.0)
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }

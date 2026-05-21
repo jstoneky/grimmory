@@ -43,17 +43,16 @@
       "save": "Mentés",
       "collapseSeries": "Sorozatok összevonása",
       "gridColumns": "Rácsnézet oszlopai",
-      "gridItemSize": "Rácsnézet elem mérete",
       "bookTypeOverlay": "Fájlformátum overlay",
       "noBooks": "Ebben a gyűjteményben nem találhatóak könyvek!",
       "failedLibrary": "Nem sikerült betölteni a könyvtárban lévő könyveket!",
       "failedShelf": "Nem sikerült betölteni a polcon lévő könyveket!",
+      "failedBooks": "",
       "activeFilters": "{{ count }} aktív szűrő"
     },
     "tooltip": {
       "clearFilters": "Szűrők eltávolítása",
       "visibleColumns": "Látható oszlopok",
-      "displaySettings": "Megjelenítés beállításai",
       "selectSorting": "Rendezés kiválasztása",
       "toggleView": "Válts Rácsos és Táblázatos megjelenítés között",
       "search": "Keresés",
@@ -614,7 +613,12 @@
   },
   "table": {
     "bookCoverAlt": "",
-    "statusPrefix": "",
+    "label": "",
+    "selectBook": "",
+    "selectBookFallback": "",
+    "noRating": "",
+    "ratingOutOf": "",
+    "statusWithPrefix": "{{ status }}",
     "locked": "",
     "unlocked": "",
     "toast": {

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.text.DecimalFormat;
 
 @Slf4j
 @Service
@@ -275,7 +276,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
             if (volume.getCountOfIssues() != null && volume.getCountOfIssues() >= requestedIssue) {
                 score += 20;
             }
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException _) {}
 
         Set<String> majorPublishers = Set.of("Marvel", "DC Comics", "Image Comics", "Dark Horse Comics", "IDW Publishing", "Dynamite Entertainment", "BOOM! Studios", "Valiant Entertainment");
         if (volume.getPublisher() != null && volume.getPublisher().getName() != null) {
@@ -290,7 +291,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
                 if (year >= 2000) score += 5;
                 if (year >= 2010) score += 5;
                 if (year >= 2020) score += 5;
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException _) {}
         }
 
         return score;
@@ -494,7 +495,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
         if (response != null && response.getResults() != null) {
             return response.getResults().stream()
                     .map(comic -> convertToBookMetadata(comic, null))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return Collections.emptyList();
     }
@@ -523,7 +524,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
             log.debug("Rate limiting: sleeping {}ms before next request", sleepTime);
             try {
                 Thread.sleep(sleepTime);
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException _) {
                 Thread.currentThread().interrupt();
             }
         }
@@ -554,7 +555,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
                          response.statusCode(), retriesLeft);
                 try {
                     Thread.sleep(2000);
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException _) {}
                 return sendRequestWithRetry(uri, responseType, retriesLeft - 1);
             } else {
                 log.error("Comicvine API returned status code {}. Body: {}", response.statusCode(), response.body());
@@ -564,7 +565,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
                 log.warn("IOException during ComicVine request. Retrying... ({} retries left)", retriesLeft, e);
                 try {
                     Thread.sleep(1000);
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException _) {}
                 return sendRequestWithRetry(uri, responseType, retriesLeft - 1);
             } else {
                 log.error("Error fetching data from Comicvine API after retries", e);
@@ -888,7 +889,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
                     year = y;
                     yearString = yearMatcher.group(0);
                 }
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException _) {}
         }
 
         String cleaned = term;
@@ -982,7 +983,7 @@ public class ComicvineBookParser implements BookParser, DetailedMetadataProvider
                 if (d == Math.floor(d)) {
                     return String.valueOf((int) d);
                 } else {
-                    return new java.text.DecimalFormat("0.#####").format(d);
+                    return new DecimalFormat("0.#####").format(d);
                 }
             } else {
                 return String.valueOf(Integer.parseInt(issueNumber));
