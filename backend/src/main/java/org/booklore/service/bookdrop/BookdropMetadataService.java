@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.booklore.model.entity.BookdropFileEntity.Status.PENDING_REVIEW;
@@ -37,6 +38,8 @@ import static org.booklore.util.FileService.truncate;
 @AllArgsConstructor
 @Service
 public class BookdropMetadataService {
+
+    private static final Pattern ISBN_NON_DIGIT_PATTERN = Pattern.compile("[^0-9Xx]");
 
     private final BookdropFileRepository bookdropFileRepository;
     private final AppSettingService appSettingService;
@@ -138,6 +141,8 @@ public class BookdropMetadataService {
         // Created a builder from `extracted` to perform a shallow clone
         // where we overwrite only truncated fields.
 
+        String[] normalizedIsbns = normalizeIsbns(extracted.getIsbn10(), extracted.getIsbn13());
+
         return extracted.toBuilder()
 
                 // Basic Fields
@@ -149,9 +154,11 @@ public class BookdropMetadataService {
                 .seriesName(truncate(extracted.getSeriesName(), 1000))
                 .language(truncate(extracted.getLanguage(), 10))
 
-                // ISBN
-                .isbn10(truncate(extracted.getIsbn10(), 10))
-                .isbn13(truncate(extracted.getIsbn13(), 13))
+                // ISBN — validate & migrate. Drops malformed values rather than
+                // truncating them (truncating a 13-digit ISBN to 10 chars produces
+                // a garbage identifier that 404s every metadata provider).
+                .isbn10(normalizedIsbns[0])
+                .isbn13(normalizedIsbns[1])
 
                 // External IDs
                 .asin(truncate(extracted.getAsin(), 10))
@@ -166,6 +173,42 @@ public class BookdropMetadataService {
                 .doubanId(truncate(extracted.getDoubanId(), 100))
 
                 .build();
+    }
+
+    /**
+     * Returns [isbn10, isbn13] with separators stripped, lengths validated, and
+     * 13-digit values that landed in the isbn10 slot promoted to isbn13. Any
+     * value that can't be coerced to a 10- or 13-digit identifier is dropped.
+     */
+    private String[] normalizeIsbns(String rawIsbn10, String rawIsbn13) {
+        String clean10 = cleanIsbn(rawIsbn10);
+        String clean13 = cleanIsbn(rawIsbn13);
+
+        // Promote misfiled values to the correct field
+        if (clean13 != null && clean13.length() == 10 && clean10 == null) {
+            clean10 = clean13;
+            clean13 = null;
+        }
+        if (clean10 != null && clean10.length() == 13 && clean13 == null) {
+            clean13 = clean10;
+            clean10 = null;
+        }
+
+        // Drop malformed values
+        if (clean10 != null && clean10.length() != 10) {
+            clean10 = null;
+        }
+        if (clean13 != null && clean13.length() != 13) {
+            clean13 = null;
+        }
+
+        return new String[]{clean10, clean13};
+    }
+
+    private String cleanIsbn(String input) {
+        if (input == null || input.isBlank()) return null;
+        String cleaned = ISBN_NON_DIGIT_PATTERN.matcher(input).replaceAll("").toUpperCase();
+        return cleaned.isEmpty() ? null : cleaned;
     }
 
     private BookMetadata extractInitialMetadata(BookdropFileEntity entity) {

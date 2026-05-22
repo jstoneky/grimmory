@@ -154,8 +154,8 @@ class BookdropMetadataServiceTest {
     void attachInitialMetadata_shouldTruncateFields() throws Exception {
         BookMetadata metadata = BookMetadata.builder()
                 .asin("SAMPLEASINTOOLONG")
-                .isbn10("00000000000000000000000000000")
-                .isbn13("00000000000000000000000000000")
+                .isbn10("0123456789")
+                .isbn13("9780134685991")
                 .language("US EnglishTOOLONG")
                 .build();
 
@@ -172,9 +172,57 @@ class BookdropMetadataServiceTest {
         BookMetadata actual = argument.getValue();
 
         assertThat(actual.getAsin()).isEqualTo("SAMPLEASIN");
-        assertThat(actual.getIsbn10()).isEqualTo("0000000000");
-        assertThat(actual.getIsbn13()).isEqualTo("0000000000000");
+        assertThat(actual.getIsbn10()).isEqualTo("0123456789");
+        assertThat(actual.getIsbn13()).isEqualTo("9780134685991");
         assertThat(actual.getLanguage()).isEqualTo("US English");
+    }
+
+    @Test()
+    void attachInitialMetadata_shouldPromoteIsbn13StoredInIsbn10Field() throws Exception {
+        // Some epubs put the ISBN-13 in the isbn10 metadata slot. Without
+        // promotion, the truncate-to-10 in cleanInitialMetadata corrupted the
+        // identifier and every provider lookup 404'd.
+        BookMetadata metadata = BookMetadata.builder()
+                .isbn10("9780553897845")
+                .build();
+
+        when(bookdropFileRepository.findById(1L)).thenReturn(Optional.of(sampleFile));
+        when(metadataExtractorFactory.extractMetadata(eq(BookFileExtension.EPUB), any(File.class))).thenReturn(metadata);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"title\":\"No Cover Book\"}");
+        when(bookdropFileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        bookdropMetadataService.attachInitialMetadata(1L);
+
+        ArgumentCaptor<BookMetadata> argument = ArgumentCaptor.forClass(BookMetadata.class);
+        verify(objectMapper).writeValueAsString(argument.capture());
+
+        BookMetadata actual = argument.getValue();
+
+        assertThat(actual.getIsbn10()).isNull();
+        assertThat(actual.getIsbn13()).isEqualTo("9780553897845");
+    }
+
+    @Test()
+    void attachInitialMetadata_shouldDropMalformedIsbnRatherThanTruncate() throws Exception {
+        BookMetadata metadata = BookMetadata.builder()
+                .isbn10("00000000000000000000000000000")
+                .isbn13("00000000000000000000000000000")
+                .build();
+
+        when(bookdropFileRepository.findById(1L)).thenReturn(Optional.of(sampleFile));
+        when(metadataExtractorFactory.extractMetadata(eq(BookFileExtension.EPUB), any(File.class))).thenReturn(metadata);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"title\":\"No Cover Book\"}");
+        when(bookdropFileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        bookdropMetadataService.attachInitialMetadata(1L);
+
+        ArgumentCaptor<BookMetadata> argument = ArgumentCaptor.forClass(BookMetadata.class);
+        verify(objectMapper).writeValueAsString(argument.capture());
+
+        BookMetadata actual = argument.getValue();
+
+        assertThat(actual.getIsbn10()).isNull();
+        assertThat(actual.getIsbn13()).isNull();
     }
 
     @Test

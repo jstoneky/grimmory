@@ -296,7 +296,7 @@ class EpubMetadataExtractorTest {
                     """);
             BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
 
-            assertThat(metadata.getIsbn13()).isEqualTo("978-0-13-468599-1");
+            assertThat(metadata.getIsbn13()).isEqualTo("9780134685991");
         }
 
         @Test
@@ -307,7 +307,7 @@ class EpubMetadataExtractorTest {
                     """);
             BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
 
-            assertThat(metadata.getIsbn10()).isEqualTo("0-13-468599-X");
+            assertThat(metadata.getIsbn10()).isEqualTo("013468599X");
         }
 
         @Test
@@ -411,7 +411,7 @@ class EpubMetadataExtractorTest {
                     """);
             BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
 
-            assertThat(metadata.getIsbn13()).isEqualTo("978 0 13 468599 1");
+            assertThat(metadata.getIsbn13()).isEqualTo("9780134685991");
         }
     }
 

@@ -433,10 +433,7 @@ public class MetadataRefreshService {
                     .bookId(book.getId())
                     .build();
         }
-        String isbn = metadata.getIsbn13();
-        if (isbn == null || isbn.isBlank()) {
-            isbn = metadata.getIsbn10();
-        }
+        String isbn = pickValidIsbn(metadata.getIsbn13(), metadata.getIsbn10());
         return FetchMetadataRequest.builder()
                 .isbn(isbn)
                 .asin(metadata.getAsin())
@@ -444,6 +441,21 @@ public class MetadataRefreshService {
                 .title(metadata.getTitle())
                 .bookId(book.getId())
                 .build();
+    }
+
+    private static String pickValidIsbn(String isbn13, String isbn10) {
+        if (isbn13 != null && !isbn13.isBlank() && isValidIsbnLength(isbn13)) {
+            return isbn13;
+        }
+        if (isbn10 != null && !isbn10.isBlank() && isValidIsbnLength(isbn10)) {
+            return isbn10;
+        }
+        return null;
+    }
+
+    private static boolean isValidIsbnLength(String value) {
+        String stripped = value.replaceAll("[^0-9Xx]", "");
+        return stripped.length() == 10 || stripped.length() == 13;
     }
 
     public BookMetadata buildFetchMetadata(BookMetadata existingMetadata, Long bookId, MetadataRefreshOptions refreshOptions, Map<MetadataProvider, BookMetadata> metadataMap) {

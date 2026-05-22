@@ -349,11 +349,11 @@ public class EpubMetadataExtractor implements FileMetadataExtractor {
                             switch (scheme) {
                                 case "ISBN", "ISBN10", "ISBN13" -> {
                                     String cleanValue = ISBN_SEPARATOR_PATTERN.matcher(value).replaceAll("");
-                                    if (cleanValue.length() == 13) builderMeta.isbn13(value);
+                                    if (cleanValue.length() == 13) builderMeta.isbn13(cleanValue);
                                     else if (cleanValue.length() == 10
                                             && !cleanValue.startsWith("978")
                                             && !cleanValue.startsWith("979")) {
-                                        builderMeta.isbn10(value);
+                                        builderMeta.isbn10(cleanValue);
                                     }
                                 }
                                 case "GOODREADS" -> builderMeta.goodreadsId(value);
