@@ -41,6 +41,7 @@ public class AcquisitionConfigService {
     }
 
     public IndexerDTO createIndexer(IndexerDTO dto) {
+        urlValidator.validateOutboundUrl(dto.url());
         AcquisitionIndexerEntity entity = AcquisitionIndexerEntity.builder()
                 .name(dto.name())
                 .url(dto.url())
@@ -53,6 +54,7 @@ public class AcquisitionConfigService {
     }
 
     public IndexerDTO updateIndexer(Long id, IndexerDTO dto) {
+        urlValidator.validateOutboundUrl(dto.url());
         AcquisitionIndexerEntity entity = indexerRepository.findById(id)
                 .orElseThrow(() -> ApiError.INDEXER_NOT_FOUND.createException(id));
         entity.setName(dto.name());
@@ -105,6 +107,7 @@ public class AcquisitionConfigService {
         if (clientRepository.count() > 0) {
             throw ApiError.CONFLICT.createException("Only one download client is supported. Edit or delete the existing client.");
         }
+        urlValidator.validateOutboundUrl(dto.url());
         AcquisitionClientEntity entity = AcquisitionClientEntity.builder()
                 .name(dto.name())
                 .type(parseClientType(dto.type()))
@@ -118,6 +121,7 @@ public class AcquisitionConfigService {
     }
 
     public ClientDTO updateClient(Long id, ClientDTO dto) {
+        urlValidator.validateOutboundUrl(dto.url());
         AcquisitionClientEntity entity = clientRepository.findById(id)
                 .orElseThrow(() -> ApiError.CLIENT_NOT_FOUND.createException(id));
         entity.setName(dto.name());

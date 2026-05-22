@@ -89,7 +89,20 @@ class AcquisitionConfigServiceTest {
         IndexerDTO result = service.createIndexer(dto);
 
         assertThat(result.name()).isEqualTo("NZBGeek");
+        verify(urlValidator).validateOutboundUrl("https://api.nzbgeek.info");
         verify(indexerRepository).save(any(AcquisitionIndexerEntity.class));
+    }
+
+    @Test
+    void createIndexer_invalidUrl_blocksSave() {
+        IndexerDTO dto = new IndexerDTO(null, "NZBGeek", "http://169.254.169.254/", "key123", true, 0);
+        doThrow(new IllegalArgumentException("Connections to cloud metadata addresses are not allowed"))
+                .when(urlValidator).validateOutboundUrl(dto.url());
+
+        assertThatThrownBy(() -> service.createIndexer(dto))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(indexerRepository, never()).save(any());
     }
 
     @Test
@@ -111,7 +124,20 @@ class AcquisitionConfigServiceTest {
         IndexerDTO result = service.updateIndexer(1L, dto);
 
         assertThat(result).isNotNull();
+        verify(urlValidator).validateOutboundUrl("https://new.url");
         verify(indexerRepository).save(indexerEntity);
+    }
+
+    @Test
+    void updateIndexer_invalidUrl_blocksSave() {
+        IndexerDTO dto = new IndexerDTO(1L, "Updated", "http://169.254.169.254/", "newkey", false, 5);
+        doThrow(new IllegalArgumentException("Connections to cloud metadata addresses are not allowed"))
+                .when(urlValidator).validateOutboundUrl(dto.url());
+
+        assertThatThrownBy(() -> service.updateIndexer(1L, dto))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(indexerRepository, never()).save(any());
     }
 
     @Test
@@ -152,7 +178,20 @@ class AcquisitionConfigServiceTest {
         ClientDTO result = service.createClient(dto);
 
         assertThat(result.name()).isEqualTo("SABnzbd");
+        verify(urlValidator).validateOutboundUrl("http://localhost:8080");
         verify(clientRepository).save(any(AcquisitionClientEntity.class));
+    }
+
+    @Test
+    void createClient_invalidUrl_blocksSave() {
+        ClientDTO dto = new ClientDTO(null, "SABnzbd", "SABNZBD", "http://169.254.169.254/", "sabkey", "books", true);
+        doThrow(new IllegalArgumentException("Connections to cloud metadata addresses are not allowed"))
+                .when(urlValidator).validateOutboundUrl(dto.url());
+
+        assertThatThrownBy(() -> service.createClient(dto))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(clientRepository, never()).save(any());
     }
 
     @Test
@@ -164,7 +203,20 @@ class AcquisitionConfigServiceTest {
         ClientDTO result = service.updateClient(1L, dto);
 
         assertThat(result).isNotNull();
+        verify(urlValidator).validateOutboundUrl("http://new:8080");
         verify(clientRepository).save(clientEntity);
+    }
+
+    @Test
+    void updateClient_invalidUrl_blocksSave() {
+        ClientDTO dto = new ClientDTO(1L, "Updated SAB", "SABNZBD", "http://169.254.169.254/", "newkey", "ebooks", false);
+        doThrow(new IllegalArgumentException("Connections to cloud metadata addresses are not allowed"))
+                .when(urlValidator).validateOutboundUrl(dto.url());
+
+        assertThatThrownBy(() -> service.updateClient(1L, dto))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(clientRepository, never()).save(any());
     }
 
     @Test

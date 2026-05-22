@@ -7,7 +7,7 @@ import org.booklore.model.enums.WantedBookStatus;
 import org.booklore.model.websocket.Topic;
 import org.booklore.repository.WantedBookRepository;
 import org.booklore.service.NotificationService;
-import org.booklore.service.acquisition.AcquisitionService;
+import org.booklore.service.acquisition.AcquisitionDispatchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BookAcquisitionSchedulerTest {
 
-    @Mock private AcquisitionService acquisitionService;
+    @Mock private AcquisitionDispatchService dispatchService;
     @Mock private WantedBookRepository wantedBookRepository;
     @Mock private NotificationService notificationService;
 
@@ -50,27 +50,27 @@ class BookAcquisitionSchedulerTest {
     void triggerNow_withTwoWantedBooks_callsSearchAndDispatchTwice() {
         when(wantedBookRepository.findByStatusIn(List.of(WantedBookStatus.WANTED, WantedBookStatus.NOT_FOUND)))
                 .thenReturn(List.of(wantedBook1, wantedBook2));
-        when(acquisitionService.searchAndDispatch(any()))
+        when(dispatchService.searchAndDispatch(any()))
                 .thenReturn(AcquisitionResult.notFound(1L));
 
         scheduler.triggerNow();
 
-        verify(acquisitionService, times(2)).searchAndDispatch(any());
+        verify(dispatchService, times(2)).searchAndDispatch(any());
     }
 
     @Test
     void triggerNow_oneBookThrowsException_secondBookStillProcessed() {
         when(wantedBookRepository.findByStatusIn(List.of(WantedBookStatus.WANTED, WantedBookStatus.NOT_FOUND)))
                 .thenReturn(List.of(wantedBook1, wantedBook2));
-        when(acquisitionService.searchAndDispatch(eq(wantedBook1)))
+        when(dispatchService.searchAndDispatch(eq(wantedBook1)))
                 .thenThrow(new RuntimeException("Indexer timeout"));
-        when(acquisitionService.searchAndDispatch(eq(wantedBook2)))
+        when(dispatchService.searchAndDispatch(eq(wantedBook2)))
                 .thenReturn(AcquisitionResult.notFound(2L));
 
         scheduler.triggerNow();
 
-        verify(acquisitionService).searchAndDispatch(wantedBook1);
-        verify(acquisitionService).searchAndDispatch(wantedBook2);
+        verify(dispatchService).searchAndDispatch(wantedBook1);
+        verify(dispatchService).searchAndDispatch(wantedBook2);
         // Notification only sent for book2 (book1 threw before notification)
         verify(notificationService, times(1)).sendMessage(eq(Topic.ACQUISITION_UPDATE), any());
     }
@@ -82,7 +82,7 @@ class BookAcquisitionSchedulerTest {
 
         scheduler.triggerNow();
 
-        verify(acquisitionService, never()).searchAndDispatch(any());
+        verify(dispatchService, never()).searchAndDispatch(any());
         verify(notificationService, never()).sendMessage(any(), any());
     }
 
@@ -90,7 +90,7 @@ class BookAcquisitionSchedulerTest {
     void triggerNow_successfulDispatch_sendsNotification() {
         when(wantedBookRepository.findByStatusIn(List.of(WantedBookStatus.WANTED, WantedBookStatus.NOT_FOUND)))
                 .thenReturn(List.of(wantedBook1));
-        when(acquisitionService.searchAndDispatch(wantedBook1))
+        when(dispatchService.searchAndDispatch(wantedBook1))
                 .thenReturn(AcquisitionResult.dispatched(1L, "Dune Frank Herbert EPUB", 90, "sabnzbd-123"));
 
         scheduler.triggerNow();
@@ -111,7 +111,7 @@ class BookAcquisitionSchedulerTest {
         scheduler.triggerNow();
 
         assertThat(exhausted.getStatus()).isEqualTo(WantedBookStatus.FAILED_PERMANENT);
-        verify(acquisitionService, never()).searchAndDispatch(any());
+        verify(dispatchService, never()).searchAndDispatch(any());
         verify(notificationService).sendMessage(eq(Topic.ACQUISITION_UPDATE), any());
     }
 
@@ -123,12 +123,12 @@ class BookAcquisitionSchedulerTest {
 
         when(wantedBookRepository.findByStatusIn(List.of(WantedBookStatus.WANTED, WantedBookStatus.NOT_FOUND)))
                 .thenReturn(List.of(notFound));
-        when(acquisitionService.searchAndDispatch(notFound))
+        when(dispatchService.searchAndDispatch(notFound))
                 .thenReturn(AcquisitionResult.notFound(4L));
 
         scheduler.triggerNow();
 
-        verify(acquisitionService).searchAndDispatch(notFound);
+        verify(dispatchService).searchAndDispatch(notFound);
     }
 
     @Test
@@ -137,7 +137,7 @@ class BookAcquisitionSchedulerTest {
         // by having the first call set running=true before second call
         when(wantedBookRepository.findByStatusIn(any()))
                 .thenReturn(List.of(wantedBook1));
-        when(acquisitionService.searchAndDispatch(any()))
+        when(dispatchService.searchAndDispatch(any()))
                 .thenReturn(AcquisitionResult.notFound(1L));
 
         // A fresh scheduler's running flag starts false; triggerNow sets it true then false.
@@ -145,6 +145,6 @@ class BookAcquisitionSchedulerTest {
         // doesn't break normal single-threaded execution.
         scheduler.triggerNow();
 
-        verify(acquisitionService, times(1)).searchAndDispatch(any());
+        verify(dispatchService, times(1)).searchAndDispatch(any());
     }
 }

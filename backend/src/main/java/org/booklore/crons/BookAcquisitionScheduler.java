@@ -7,7 +7,7 @@ import org.booklore.model.websocket.AcquisitionNotification;
 import org.booklore.model.websocket.Topic;
 import org.booklore.repository.WantedBookRepository;
 import org.booklore.service.NotificationService;
-import org.booklore.service.acquisition.AcquisitionService;
+import org.booklore.service.acquisition.AcquisitionDispatchService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @AllArgsConstructor
 public class BookAcquisitionScheduler {
 
-    private final AcquisitionService acquisitionService;
+    private final AcquisitionDispatchService dispatchService;
     private final WantedBookRepository wantedBookRepository;
     private final NotificationService notificationService;
 
@@ -64,7 +64,7 @@ public class BookAcquisitionScheduler {
                     continue;
                 }
                 try {
-                    AcquisitionResult result = acquisitionService.searchAndDispatch(book);
+                    AcquisitionResult result = dispatchService.searchAndDispatch(book);
 
                     WantedBookStatus newStatus = result.found()
                             ? WantedBookStatus.DOWNLOADING
