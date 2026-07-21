@@ -363,7 +363,8 @@ class OidcGroupMappingServiceTest {
         var user = createMockedUser(perms);
 
         var mapping = createMapping(false, "[\"permissionManageAcquisition\"]", "[]");
-        setupSyncMocks("ON_LOGIN", List.of("group1"), List.of(mapping));
+        var dto = createMappingDto(false, List.of("permissionManageAcquisition"), List.of());
+        setupSyncMocks("ON_LOGIN", List.of("group1"), Map.of(dto, mapping));
 
         service.syncUserGroups(user, List.of("group1"));
 
@@ -378,7 +379,8 @@ class OidcGroupMappingServiceTest {
         var user = createMockedUser(perms);
 
         var mapping = createMapping(false, "[\"permissionUpload\"]", "[]");
-        setupSyncMocks("ON_LOGIN", List.of("group1"), List.of(mapping));
+        var dto = createMappingDto(false, List.of("permissionUpload"), List.of());
+        setupSyncMocks("ON_LOGIN", List.of("group1"), Map.of(dto, mapping));
 
         service.syncUserGroups(user, List.of("group1"));
 
@@ -393,7 +395,8 @@ class OidcGroupMappingServiceTest {
         var user = createMockedUser(perms);
 
         var mapping = createMapping(false, "[\"permissionManageAcquisition\"]", "[]");
-        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), List.of(mapping));
+        var dto = createMappingDto(false, List.of("permissionManageAcquisition"), List.of());
+        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), Map.of(dto, mapping));
 
         service.syncUserGroups(user, List.of("group1"));
 
@@ -409,7 +412,8 @@ class OidcGroupMappingServiceTest {
         var user = createMockedUser(perms);
 
         var mapping = createMapping(false, "[\"permissionUpload\"]", "[]");
-        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), List.of(mapping));
+        var dto = createMappingDto(false, List.of("permissionUpload"), List.of());
+        setupSyncMocks("ON_LOGIN_ADDITIVE", List.of("group1"), Map.of(dto, mapping));
 
         service.syncUserGroups(user, List.of("group1"));
 
