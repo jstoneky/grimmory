@@ -17,8 +17,7 @@
     "systemConfig": "System Configuration: {{count}}/5",
     "metadataEditing": "Metadata Editing: {{count}}/7",
     "deviceSync": "Device Sync: {{count}}/3",
-    "bulkReset": "Bulk Reset: {{count}}/3",
-    "acquisition": "Acquisition: {{count}}/1"
+    "bulkReset": "Bulk Reset: {{count}}/3"
   },
   "actions": {
     "editUser": "Edit user",
@@ -45,8 +44,7 @@
     "systemConfig": "System Configuration",
     "metadataEditing": "Metadata Editing",
     "deviceSync": "Device Sync",
-    "bulkReset": "Bulk Reset",
-    "acquisition": "Acquisition"
+    "bulkReset": "Bulk Reset"
   },
   "perms": {
     "fullAdmin": "Full Administrator Access",
@@ -75,8 +73,7 @@
     "opdsFeedAccess": "OPDS Feed Access",
     "bulkResetGrimmory": "Bulk Reset Grimmory Read Progress",
     "bulkResetKoreader": "Bulk Reset KoReader Read Progress",
-    "bulkResetReadStatus": "Bulk Reset Book Read Status",
-    "manageAcquisition": "Discover & Wanted Books"
+    "bulkResetReadStatus": "Bulk Reset Book Read Status"
   },
   "permissions": "Permissions",
   "contentRestrictions": {

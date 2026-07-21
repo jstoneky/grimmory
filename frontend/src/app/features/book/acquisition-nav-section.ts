@@ -17,18 +17,18 @@ export function buildAcquisitionSection(
     {
       id: 'acquisition',
       menuKey: 'acquisition',
-      label: translate('layout.menu.acquisition'),
+      label: translate('acquisition.menu.acquisition'),
       expandable: true,
       items: [
         {
           id: 'discover',
-          label: translate('layout.menu.discover'),
+          label: translate('acquisition.menu.discover'),
           icon: 'pi-search',
           routerLink: ['/discover'],
         },
         {
           id: 'wanted',
-          label: translate('layout.menu.wanted'),
+          label: translate('acquisition.menu.wanted'),
           icon: 'pi-bookmark',
           routerLink: ['/wanted'],
         },

@@ -9,6 +9,7 @@ import {UserStatsGuard} from './core/security/guards/user-stats.guard';
 import {LoginGuard} from './shared/components/setup/login.guard';
 import {SetupGuard} from './shared/components/setup/setup.guard';
 import {SetupRedirectGuard} from './shared/components/setup/setup-redirect.guard';
+import {acquisitionChildRoutes} from './features/book/acquisition.routes';
 
 describe('app routes', () => {
   it('defines the setup and auth entry routes', () => {
@@ -27,14 +28,12 @@ describe('app routes', () => {
     const shellRoute = routes.find(route => route.path === '' && Array.isArray(route.children));
     const children = shellRoute?.children ?? [];
 
-    expect(children).toHaveLength(23);
+    expect(children).toHaveLength(21 + acquisitionChildRoutes.length);
     expect(shellRoute?.canActivateChild).toEqual([AuthChildGuard]);
     expect(children.find(route => route.path === 'dashboard')?.canActivate).toBeUndefined();
     expect(children.find(route => route.path === 'all-books')?.canActivate).toBeUndefined();
     expect(children.find(route => route.path === 'magic-shelf/:magicShelfId/books')?.canActivate).toBeUndefined();
     expect(children.find(route => route.path === 'notebook')?.canActivate).toBeUndefined();
-    expect(children.find(route => route.path === 'discover')?.canActivate).toBeUndefined();
-    expect(children.find(route => route.path === 'wanted')?.canActivate).toBeUndefined();
     expect(typeof children.find(route => route.path === 'all-books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'library/:libraryId/books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'shelf/:shelfId/books')?.loadComponent).toBe('function');

@@ -1,0 +1,10 @@
+{
+  "menu": {
+    "acquisition": "Acquisition",
+    "discover": "Discover Books",
+    "wanted": "Wanted Books"
+  },
+  "settingsTab": "Acquisition",
+  "permGroup": "Acquisition",
+  "permManageAcquisition": "Discover & Wanted Books"
+}

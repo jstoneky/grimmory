@@ -391,13 +391,13 @@
                       <div class="permission-group">
                         <h5>
                           <i class="pi pi-search"></i>
-                          {{ t('permGroups.acquisition') }}
+                          {{ 'acquisition.permGroup' | transloco }}
                           <span class="permission-count" [attr.data-level]="getPermissionLevel(getAcquisitionPermissionsCount(user), 1)">{{ getAcquisitionPermissionsCount(user) }}/1</span>
                         </h5>
                         <div class="permission-items">
                           <div class="permission-item">
                             <p-checkbox [binary]="true" [(ngModel)]="user.permissions.canManageAcquisition" [disabled]="isPermissionDisabled(user)" inputId="manageacquisition-{{user.id}}"></p-checkbox>
-                            <label [for]="'manageacquisition-'+user.id">{{ t('perms.manageAcquisition') }}</label>
+                            <label [for]="'manageacquisition-'+user.id">{{ 'acquisition.permManageAcquisition' | transloco }}</label>
                           </div>
                         </div>
                       </div>

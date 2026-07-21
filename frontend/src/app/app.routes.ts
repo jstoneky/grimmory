@@ -14,6 +14,7 @@ import {BookdropGuard} from './core/security/guards/bookdrop.guard';
 import {LibraryStatsGuard} from './core/security/guards/library-stats.guard';
 import {UserStatsGuard} from './core/security/guards/user-stats.guard';
 import {EditMetadataGuard} from './core/security/guards/edit-metdata.guard';
+import {acquisitionChildRoutes} from './features/book/acquisition.routes';
 
 const loadBookBrowserComponent = () =>
   import('./features/book/components/book-browser/book-browser.component').then(m => m.BookBrowserComponent);
@@ -57,8 +58,7 @@ export const routes: Routes = [
       {path: 'design-system/form/library', loadComponent: () => import('./features/design-system/forms/library-form.component').then(m => m.LibraryFormExampleComponent)},
       {path: 'design-system/form/device', loadComponent: () => import('./features/design-system/forms/device-form.component').then(m => m.DeviceFormExampleComponent)},
       {path: 'design-system/form/everything', loadComponent: () => import('./features/design-system/forms/everything-form.component').then(m => m.EverythingFormExampleComponent)},
-      {path: 'discover', loadComponent: () => import('./features/book/components/book-discovery/book-discovery.component').then(m => m.BookDiscoveryComponent)},
-      {path: 'wanted', loadComponent: () => import('./features/book/components/wanted-books/wanted-books.component').then(m => m.WantedBooksComponent)},
+      ...acquisitionChildRoutes,
     ]
   },
   {

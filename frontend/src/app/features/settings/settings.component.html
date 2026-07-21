@@ -54,9 +54,11 @@
               </p-tab>
             }
             @if (canOpenTab(SettingsTab.AcquisitionSettings)) {
-              <p-tab [value]="SettingsTab.AcquisitionSettings">
-                <i class="pi pi-download"></i> {{ t('acquisition') }}
-              </p-tab>
+              <ng-container *transloco="let tAcq; prefix: 'acquisition'">
+                <p-tab [value]="SettingsTab.AcquisitionSettings">
+                  <i class="pi pi-download"></i> {{ tAcq('settingsTab') }}
+                </p-tab>
+              </ng-container>
             }
             @if (canOpenTab(SettingsTab.OpdsV2)) {
               <p-tab [value]="SettingsTab.OpdsV2">
