@@ -19,6 +19,7 @@ on:
 permissions:
   contents: write
   packages: write
+  issues: write
 
 jobs:
   sync-and-build:
@@ -76,9 +77,62 @@ jobs:
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
           echo "run_tests=$run_tests" >> "$GITHUB_OUTPUT"
 
+      - name: Set Up JDK 25
+        if: steps.check.outputs.merge == 'true' || steps.check.outputs.run_tests == 'true'
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
       - name: Merge upstream main
         if: steps.check.outputs.merge == 'true'
-        run: git merge upstream/main --no-edit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git merge upstream/main --no-edit; then
+            exit 0
+          fi
+
+          mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+
+          # A lone gradle.lockfile conflict is pure churn: our build.gradle.kts
+          # additions merged cleanly, so take upstream's lockfile and regenerate
+          # it from the merged dependency declarations.
+          if [ "${#conflicts[@]}" -eq 1 ] && [ "${conflicts[0]}" = "backend/gradle.lockfile" ]; then
+            echo "Only backend/gradle.lockfile conflicts — regenerating from merged build.gradle.kts."
+            git checkout --theirs backend/gradle.lockfile
+            (cd backend && ./gradlew dependencies --write-locks -q)
+            git add backend/gradle.lockfile
+            git commit --no-edit
+            exit 0
+          fi
+
+          {
+            echo "## Nightly upstream sync blocked by merge conflicts"
+            echo
+            echo "\`git merge upstream/main\` into \`feature/acquisition\` conflicted in:"
+            echo
+            printf -- '- `%s`\n' "${conflicts[@]}"
+            echo
+            echo "Resolve locally, test, and push; the next nightly run will then proceed:"
+            echo '```'
+            echo "git fetch upstream main"
+            echo "git checkout feature/acquisition"
+            echo "git merge upstream/main"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY" > /tmp/conflict-report.md
+
+          open_issues=$(gh issue list --state open --search 'in:title "Upstream sync blocked"' --json number --jq 'length' || echo 1)
+          if [ "$open_issues" -eq 0 ]; then
+            gh issue create \
+              --title "Upstream sync blocked by merge conflicts" \
+              --body-file /tmp/conflict-report.md || true
+          else
+            echo "An open sync-conflict issue already exists — not filing another."
+          fi
+
+          git merge --abort
+          exit 1
 
       - name: Fix Flyway version collisions
         if: steps.check.outputs.merge == 'true'
@@ -100,13 +154,6 @@ jobs:
         uses: taiki-e/install-action@5f57d6cb7cd20b14a8a27f522884c4bc8a187458 # v2.75.19
         with:
           tool: just
-
-      - name: Set Up JDK 25
-        if: steps.check.outputs.run_tests == 'true'
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
-        with:
-          java-version: '25'
-          distribution: 'temurin'
 
       - name: Install libarchive (NightCompress dep)
         if: steps.check.outputs.run_tests == 'true'
@@ -130,7 +177,7 @@ jobs:
         if: steps.check.outputs.run_tests == 'true'
         run: |
           corepack enable
-          corepack yarn --version
+          corepack pnpm --version
 
       - name: Install Frontend Dependencies
         if: steps.check.outputs.run_tests == 'true'
