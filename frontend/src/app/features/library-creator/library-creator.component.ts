@@ -10,7 +10,7 @@ import { Library, MetadataSource, OrganizationMode } from '../book/model/library
 import { BookType } from '../book/model/book.model';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { Tooltip } from 'primeng/tooltip';
-import { IconPickerService, IconSelection } from '../../shared/service/icon-picker.service';
+import { IconPickerService } from '../../shared/service/icon-picker.service';
 import { Button } from 'primeng/button';
 import { IconDisplayComponent } from '../../shared/components/icon-display/icon-display.component';
 import { DialogLauncherService } from '../../shared/services/dialog-launcher.service';
@@ -19,6 +19,8 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { Checkbox } from 'primeng/checkbox';
 import { Select } from 'primeng/select';
 import { TranslocoDirective, TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { LibraryImportProgressService } from '../../shared/service/library-import-progress.service';
+import { IconSelection, toIconSelection } from '../../shared/icons/icon-selection';
 
 interface FormatEntry { type: BookType; label: string }
 
@@ -45,6 +47,7 @@ export class LibraryCreatorComponent {
   private readonly router = inject(Router);
   private readonly iconPicker = inject(IconPickerService);
   private readonly t = inject(TranslocoService);
+  private readonly libraryImportProgressService = inject(LibraryImportProgressService);
 
   private readonly activeLang = toSignal(this.t.langChanges$, {
     initialValue: this.t.getActiveLang(),
@@ -137,12 +140,7 @@ export class LibraryCreatorComponent {
     this.folders.set(paths.map(p => p.path));
 
     if (icon != null && iconType) {
-      if (iconType === 'CUSTOM_SVG') {
-        this.selectedIcon.set({ type: 'CUSTOM_SVG', value: icon });
-      } else {
-        const value = icon.slice(0, 6) === 'pi pi-' ? icon : `pi pi-${icon}`;
-        this.selectedIcon.set({ type: 'PRIME_NG', value });
-      }
+      this.selectedIcon.set(toIconSelection(icon, iconType));
     }
 
     if (formatPriority && formatPriority.length > 0) {
@@ -215,8 +213,8 @@ export class LibraryCreatorComponent {
     return this.allBookFormats.some(f => this.getFormatWarning(f.type) !== null);
   }
 
-  openDirectoryPicker(): void {
-    const ref = this.dialogLauncherService.openDirectoryPickerDialog();
+  async openDirectoryPicker(): Promise<void> {
+    const ref = await this.dialogLauncherService.openDirectoryPickerDialog().catch(() => null);
     ref?.onClose.subscribe((selectedFolders: string[] | null) => {
       if (selectedFolders && selectedFolders.length > 0) {
         this.folders.update(current => {
@@ -302,8 +300,7 @@ export class LibraryCreatorComponent {
       this.libraryService.scanLibraryPaths(library).pipe(
         switchMap(count => {
           if (count >= 500) {
-            console.warn(`Library has ${count} processable files (>500). Will use buffered loading.`);
-            this.libraryService.setLargeLibraryLoading(true, count);
+            this.libraryImportProgressService.start(library.name, count);
           }
           return this.libraryService.createLibrary(library).pipe(
             map(createdLibrary => ({ createdLibrary, count }))
@@ -312,6 +309,9 @@ export class LibraryCreatorComponent {
       ).subscribe({
         next: ({ createdLibrary, count }) => {
           if (createdLibrary) {
+            if (count >= 500 && createdLibrary.id !== undefined) {
+              this.libraryImportProgressService.attachLibrary(createdLibrary.id);
+            }
             this.router.navigate(['/library', createdLibrary.id, 'books']);
             this.messageService.add({
               severity: 'success',
@@ -324,7 +324,7 @@ export class LibraryCreatorComponent {
           }
         },
         error: (e: Error) => {
-          this.libraryService.setLargeLibraryLoading(false, 0);
+          this.libraryImportProgressService.fail();
           this.messageService.add({ severity: 'error', summary: this.t.translate('libraryCreator.creator.toast.createFailedSummary'), detail: this.t.translate('libraryCreator.creator.toast.createFailedDetail') });
           console.error(e);
         }

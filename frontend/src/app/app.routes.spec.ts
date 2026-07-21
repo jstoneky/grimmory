@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {routes} from './app.routes';
-import {AuthGuard} from './core/security/auth.guard';
+import {AuthChildGuard, AuthGuard} from './core/security/auth.guard';
 import {BookdropGuard} from './core/security/guards/bookdrop.guard';
 import {EditMetadataGuard} from './core/security/guards/edit-metdata.guard';
 import {LibraryStatsGuard} from './core/security/guards/library-stats.guard';
@@ -27,16 +27,23 @@ describe('app routes', () => {
     const shellRoute = routes.find(route => route.path === '' && Array.isArray(route.children));
     const children = shellRoute?.children ?? [];
 
-    expect(children).toHaveLength(19);
-    expect(children.find(route => route.path === 'dashboard')?.canActivate).toEqual([AuthGuard]);
-    expect(children.find(route => route.path === 'all-books')?.canActivate).toEqual([AuthGuard]);
-    expect(children.find(route => route.path === 'magic-shelf/:magicShelfId/books')?.canActivate).toEqual([AuthGuard]);
-    expect(children.find(route => route.path === 'notebook')?.canActivate).toEqual([AuthGuard]);
+    expect(children).toHaveLength(23);
+    expect(shellRoute?.canActivateChild).toEqual([AuthChildGuard]);
+    expect(children.find(route => route.path === 'dashboard')?.canActivate).toBeUndefined();
+    expect(children.find(route => route.path === 'all-books')?.canActivate).toBeUndefined();
+    expect(children.find(route => route.path === 'magic-shelf/:magicShelfId/books')?.canActivate).toBeUndefined();
+    expect(children.find(route => route.path === 'notebook')?.canActivate).toBeUndefined();
+    expect(children.find(route => route.path === 'discover')?.canActivate).toBeUndefined();
+    expect(children.find(route => route.path === 'wanted')?.canActivate).toBeUndefined();
     expect(typeof children.find(route => route.path === 'all-books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'library/:libraryId/books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'shelf/:shelfId/books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'unshelved-books')?.loadComponent).toBe('function');
     expect(typeof children.find(route => route.path === 'magic-shelf/:magicShelfId/books')?.loadComponent).toBe('function');
+    expect(typeof children.find(route => route.path === 'design-system')?.loadComponent).toBe('function');
+    expect(typeof children.find(route => route.path === 'design-system/form/library')?.loadComponent).toBe('function');
+    expect(typeof children.find(route => route.path === 'design-system/form/device')?.loadComponent).toBe('function');
+    expect(typeof children.find(route => route.path === 'design-system/form/everything')?.loadComponent).toBe('function');
   });
 
   it('defines guarded lazy routes for metadata, stats, and bookdrop', () => {

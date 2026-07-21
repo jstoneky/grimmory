@@ -118,18 +118,19 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
   private embedPdfMessageHandler?: (e: MessageEvent) => void;
   private embedPdfSaveResolve?: (buffer: ArrayBuffer | null) => void;
   private embedPdfSaveTimer?: ReturnType<typeof setTimeout>;
+  private embedPdfSavePromise?: Promise<boolean>;
   private embedPdfInitTime = 0;
   private pendingPdfBuffer?: ArrayBuffer;
   private initTimeout?: ReturnType<typeof setTimeout>;
   private isInitializingBookViewer = false;
   private pdfFetchAbortController?: AbortController;
-  private cachedPdfBuffer: ArrayBuffer | null = null;
   private suppressProgressSave = false;
   private initialPage = 1;
   private pendingDocTargetPage: number | null = null;
   private docProgressReleaseTimer?: ReturnType<typeof setTimeout>;
   private closeReaderPromise: Promise<void> | null = null;
   readonly isClosingReader = signal(false);
+  readonly isSavingDocument = signal(false);
 
   // Book mode state
   private bookViewerInitialized = false;
@@ -263,8 +264,10 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
       // Intercept 'x' key to prevent EmbedPDF from reloading the page;
       // instead close the reader via SPA navigation.
       const keydownHandler = (e: KeyboardEvent) => {
-        const tag = (e.target as HTMLElement)?.tagName;
-        const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable;
+        const isEditing = e.composedPath().some((target) => {
+          const el = target as HTMLElement;
+          return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable;
+        });
 
         if (e.key === 'x' || e.key === 'X') {
           if (isEditing) return;
@@ -481,16 +484,6 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
 
       if (this.isPanActive()) {
         this.embedPdfBook.setPanMode(true);
-      }
-
-      // Cache the raw PDF bytes so the doc-viewer switch never needs a network request
-      if (!this.cachedPdfBuffer) {
-        const blobSrc = this.pdfBlobUrl || (this.bookData.startsWith('blob:') ? this.bookData : null);
-        if (blobSrc) {
-          fetch(blobSrc).then(r => r.arrayBuffer()).then(buf => {
-            this.cachedPdfBuffer = buf;
-          }).catch(() => { /* caching is best-effort */ });
-        }
       }
 
       // Initialize bookmark service early so toggleBookmark works before documentOpened$
@@ -975,24 +968,21 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
     try {
       let pdfBuffer: ArrayBuffer;
 
-      if (this.cachedPdfBuffer) {
-        // Use the in-memory cache — completely network-free
-        pdfBuffer = this.cachedPdfBuffer.slice(0);
+      const source = this.pdfBlobUrl || this.bookData;
+      if (source.startsWith('blob:')) {
+        const res = await fetch(source);
+        pdfBuffer = await res.arrayBuffer();
       } else {
-        const source = this.pdfBlobUrl || this.bookData;
-        if (source.startsWith('blob:')) {
-          const res = await fetch(source);
-          pdfBuffer = await res.arrayBuffer();
-        } else {
-          const headers: Record<string, string> = {};
-          const token = this.authService.getInternalAccessToken();
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          const response = await fetch(source, { headers, credentials: 'include' });
-          if (!response.ok) throw new Error(`PDF fetch failed: ${response.status}`);
-          pdfBuffer = await response.arrayBuffer();
+        const headers: Record<string, string> = {};
+        const token = this.authService.getInternalAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
+        const response = await fetch(source, {headers, credentials: 'include'});
+        if (!response.ok) {
+          throw new Error(`PDF fetch failed: ${response.status}`);
+        }
+        pdfBuffer = await response.arrayBuffer();
       }
 
       if (this.viewerMode() !== 'document') return;
@@ -1090,8 +1080,19 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async saveEmbedPdfDocument(): Promise<void> {
-    if (!this.embedPdfIframe?.contentWindow) return;
+  private async saveEmbedPdfDocument(): Promise<boolean> {
+    if (this.embedPdfSavePromise) return this.embedPdfSavePromise;
+    this.embedPdfSavePromise = this.performEmbedPdfSave();
+
+    try {
+      return await this.embedPdfSavePromise;
+    } finally {
+      this.embedPdfSavePromise = undefined;
+    }
+  }
+
+  private async performEmbedPdfSave(): Promise<boolean> {
+    if (!this.embedPdfIframe?.contentWindow) return false;
 
     try {
       const buffer: ArrayBuffer | null = await new Promise((resolve) => {
@@ -1111,7 +1112,7 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
         this.embedPdfSaveTimer = undefined;
       }
 
-      if (!buffer) return;
+      if (!buffer) return false;
 
       const headers: Record<string, string> = { 'Content-Type': 'application/pdf' };
       const uploadToken = this.authService.getInternalAccessToken();
@@ -1131,9 +1132,48 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
       });
       if (!uploadResponse.ok) {
         console.error('[EmbedPDF] Upload failed:', uploadResponse.status);
+        return false;
       }
+      this.updateSavedPdfCache(buffer);
+      await this.cacheStorageService.delete(url);
+      return true;
     } catch (err) {
       console.error('[EmbedPDF] Failed to save document:', err);
+      return false;
+    }
+  }
+
+  private updateSavedPdfCache(buffer: ArrayBuffer): void {
+    const savedBuffer = buffer.slice(0);
+    this.revokePdfBlobUrl();
+    this.pdfBlobUrl = URL.createObjectURL(new Blob([savedBuffer], { type: 'application/pdf' }));
+  }
+
+  async saveDocument(): Promise<void> {
+    if (this.viewerMode() !== 'document' || !this.embedPdfIframe) return;
+    if (this.isSavingDocument()) return;
+
+    this.isSavingDocument.set(true);
+    try {
+      const saved = await this.saveEmbedPdfDocument();
+      this.messageService.add(saved ? {
+        severity: 'success',
+        summary: this.t.translate('common.success'),
+        detail: this.t.translate('readerPdf.docViewer.changesSaved') || 'Changes saved successfully.'
+      } : {
+        severity: 'error',
+        summary: this.t.translate('common.error'),
+        detail: this.t.translate('readerPdf.docViewer.saveFailed') || 'Failed to save changes.'
+      });
+    } catch (err) {
+      console.error('[PDF Reader] Manually saving document failed:', err);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.t.translate('common.error'),
+        detail: this.t.translate('readerPdf.docViewer.saveFailed') || 'Failed to save changes.'
+      });
+    } finally {
+      this.isSavingDocument.set(false);
     }
   }
 
@@ -1262,7 +1302,6 @@ export class PdfReaderComponent implements OnInit, OnDestroy {
     this.touchCleanup?.();
 
     this.revokePdfBlobUrl();
-    this.cachedPdfBuffer = null;
     if (this.bookData?.startsWith('blob:')) {
       URL.revokeObjectURL(this.bookData);
     }

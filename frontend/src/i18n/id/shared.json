@@ -1,154 +1,209 @@
 {
-  "bookUploader": {
-    "title": "Unggah Buku",
-    "description": "",
-    "uploadDestination": "",
-    "librarySelection": "",
-    "libraryLabel": "Perpustakaan",
-    "selectLibrary": "",
-    "subpathLabel": "",
-    "selectSubpath": "",
-    "selectFiles": "",
-    "chooseBtn": "Pilih",
-    "chooseTooltip": "",
-    "uploadBtn": "Unggah",
-    "uploadTooltip": "",
-    "clearBtn": "Bersihkan",
-    "clearTooltip": "",
-    "uploadHint": "",
-    "uploading": "Mengunggah...",
-    "complete": "Selesai",
-    "filesCount": "",
-    "failedCount": "",
-    "dragDropTitle": "",
-    "supportedFormats": "",
-    "maxFileSize": "",
-    "fileTooLargeTooltip": "",
-    "uploadFailedTooltip": "",
-    "statusTooLarge": "",
-    "statusReady": "Siap",
-    "statusUploading": "Mengunggah",
-    "statusUploaded": "Diunggah",
-    "statusFailed": "Gagal",
-    "destinationLibrary": "Perpustakaan",
-    "destinationBookdrop": "",
-    "toast": {
-      "noDestinationSummary": "",
-      "noDestinationDetail": "",
-      "fileTooLargeSummary": "",
-      "fileTooLargeDetail": "",
-      "missingDataSummary": "",
-      "missingDataDetail": "",
-      "uploadFailedDefault": ""
-    }
-  },
-  "changePassword": {
-    "title": "",
-    "subtitle": "",
-    "currentPasswordLabel": "",
-    "currentPasswordPlaceholder": "",
-    "newPasswordLabel": "",
-    "newPasswordPlaceholder": "",
-    "confirmPasswordLabel": "",
-    "confirmPasswordPlaceholder": "",
-    "updateBtn": "",
-    "validation": {
-      "passwordsMismatch": "",
-      "allFieldsRequired": "",
-      "passwordsDoNotMatch": "",
-      "sameAsCurrentPassword": ""
+    "bookUploader": {
+        "title": "Unggah Buku",
+        "libraryLabel": "Perpustakaan",
+        "chooseBtn": "Pilih",
+        "uploadBtn": "Unggah",
+        "clearBtn": "Bersihkan",
+        "uploading": "Mengunggah...",
+        "complete": "Selesai",
+        "statusReady": "Siap",
+        "statusUploading": "Mengunggah",
+        "statusUploaded": "Diunggah",
+        "statusFailed": "Gagal",
+        "destinationLibrary": "Perpustakaan",
+        "selectLibrary": "",
+        "supportedFormats": "",
+        "clearTooltip": "",
+        "dragDropTitle": "",
+        "statusTooLarge": "",
+        "selectFiles": "",
+        "description": "",
+        "librarySelection": "",
+        "toast": {
+            "noDestinationDetail": "",
+            "uploadFailedDefault": "",
+            "fileTooLargeDetail": "",
+            "missingDataSummary": "",
+            "noDestinationSummary": "",
+            "missingDataDetail": "",
+            "fileTooLargeSummary": ""
+        },
+        "filesCount": "",
+        "failedCount": "",
+        "uploadFailedTooltip": "",
+        "fileTooLargeTooltip": "",
+        "maxFileSize": "",
+        "uploadTooltip": "",
+        "destinationBookdrop": "",
+        "uploadDestination": "",
+        "chooseTooltip": "",
+        "subpathLabel": "",
+        "selectSubpath": "",
+        "uploadHint": ""
     },
-    "toast": {
-      "success": "",
-      "failedSummary": "",
-      "failedDetailDefault": ""
-    }
-  },
-  "directoryPicker": {
-    "title": "",
-    "description": "",
-    "currentPath": "",
-    "searchPlaceholder": "",
-    "goUpTooltip": "",
-    "selectAllBtn": "",
-    "selectAllTooltip": "",
-    "deselectAllBtn": "",
-    "deselectAllTooltip": "",
-    "selectCurrentBtn": "",
-    "selectCurrentTooltip": "",
-    "foldersSelected": "",
-    "foldersSelectedPlural": "",
-    "loadingDirectories": "",
-    "noMatchesFound": "",
-    "directoryEmpty": "",
-    "noMatchesDescription": "",
-    "emptyDescription": "",
-    "folderAvailable": "",
-    "foldersAvailable": "",
-    "folderWillBeSelected": "",
-    "foldersWillBeSelected": "",
-    "selectDirectoriesBtn": ""
-  },
-  "liveNotification": {
-    "defaultMessage": ""
-  },
-  "metadataProgress": {
-    "taskStalled": "",
-    "taskCancelled": "",
-    "cancellationScheduledSummary": "",
-    "cancellationScheduledDetail": "",
-    "cancelFailedSummary": "",
-    "cancelFailedDetail": "",
-    "taskTitle": "",
-    "tagReview": "Tinjau",
-    "tagAuto": "Otomatis",
-    "bookProgress": "",
-    "reviewBtn": "Tinjau",
-    "discardBtn": "Buang",
-    "dismissBtn": "Abaikan",
-    "discardTooltip": "",
-    "cancelBtn": "Batal",
-    "cancelTooltip": "",
-    "statusInProgress": "",
-    "statusCompleted": "Selesai",
-    "statusError": "Eror",
-    "statusCancelled": "Dibatalkan"
-  },
-  "reader": {
-    "failedToLoadPages": "",
-    "failedToLoadBook": ""
-  },
-  "settingsHelper": {
-    "settingsSavedSummary": "",
-    "settingsSavedDetail": "",
-    "saveErrorDetail": ""
-  },
-  "setup": {
-    "title": "",
-    "subtitle": "",
-    "usernameLabel": "Nama Pengguna",
-    "usernamePlaceholder": "",
-    "fullNameLabel": "",
-    "fullNamePlaceholder": "",
-    "emailLabel": "",
-    "emailPlaceholder": "",
-    "passwordLabel": "Kata Sandi",
-    "passwordPlaceholder": "",
-    "confirmPasswordLabel": "",
-    "confirmPasswordPlaceholder": "",
-    "createAccountBtn": "",
-    "creatingAccountBtn": "",
-    "successMessage": "",
-    "validation": {
-      "usernameRequired": "",
-      "nameRequired": "",
-      "emailRequired": "",
-      "passwordMinLength": "",
-      "confirmPasswordRequired": "",
-      "passwordsMismatch": ""
+    "metadataProgress": {
+        "tagReview": "Tinjau",
+        "tagAuto": "Otomatis",
+        "reviewBtn": "Tinjau",
+        "discardBtn": "Buang",
+        "dismissBtn": "Abaikan",
+        "cancelBtn": "Batal",
+        "statusCompleted": "Selesai",
+        "statusError": "Eror",
+        "statusCancelled": "Dibatalkan",
+        "cancelFailedSummary": "",
+        "cancellationScheduledSummary": "",
+        "cancelFailedDetail": "",
+        "statusInProgress": "",
+        "taskCancelled": "",
+        "cancellationScheduledDetail": "",
+        "bookProgress": "",
+        "taskStalled": "",
+        "taskTitle": "",
+        "cancelTooltip": "",
+        "discardTooltip": ""
     },
-    "toast": {
-      "createFailedDefault": ""
+    "setup": {
+        "usernameLabel": "Nama Pengguna",
+        "passwordLabel": "Kata Sandi",
+        "creatingAccountBtn": "",
+        "validation": {
+            "passwordsMismatch": "",
+            "nameRequired": "",
+            "passwordMinLength": "",
+            "usernameRequired": "",
+            "emailRequired": "",
+            "confirmPasswordRequired": ""
+        },
+        "successMessage": "",
+        "fullNamePlaceholder": "",
+        "createAccountBtn": "",
+        "confirmPasswordLabel": "",
+        "usernamePlaceholder": "",
+        "subtitle": "",
+        "confirmPasswordPlaceholder": "",
+        "emailLabel": "",
+        "title": "",
+        "toast": {
+            "createFailedDefault": ""
+        },
+        "passwordPlaceholder": "",
+        "emailPlaceholder": "",
+        "fullNameLabel": ""
+    },
+    "directoryPicker": {
+        "directoryEmpty": "",
+        "foldersAvailable": "",
+        "selectCurrentBtn": "",
+        "selectAllBtn": "",
+        "selectAllTooltip": "",
+        "foldersSelected": "",
+        "description": "",
+        "selectCurrentTooltip": "",
+        "title": "",
+        "foldersSelectedPlural": "",
+        "emptyDescription": "",
+        "folderAvailable": "",
+        "deselectAllBtn": "",
+        "currentPath": "",
+        "foldersWillBeSelected": "",
+        "searchPlaceholder": "",
+        "deselectAllTooltip": "",
+        "folderWillBeSelected": "",
+        "goUpTooltip": "",
+        "selectDirectoriesBtn": "",
+        "loadingDirectories": "",
+        "noMatchesFound": "",
+        "noMatchesDescription": ""
+    },
+    "reader": {
+        "failedToLoadPages": "",
+        "failedToLoadBook": ""
+    },
+    "changePassword": {
+        "toast": {
+            "success": "",
+            "failedSummary": "",
+            "failedDetailDefault": ""
+        },
+        "subtitle": "",
+        "newPasswordPlaceholder": "",
+        "validation": {
+            "sameAsCurrentPassword": "",
+            "passwordsMismatch": "",
+            "allFieldsRequired": "",
+            "passwordsDoNotMatch": ""
+        },
+        "title": "",
+        "newPasswordLabel": "",
+        "currentPasswordLabel": "",
+        "confirmPasswordLabel": "",
+        "updateBtn": "",
+        "confirmPasswordPlaceholder": "",
+        "currentPasswordPlaceholder": ""
+    },
+    "settingsHelper": {
+        "settingsSavedSummary": "",
+        "saveErrorDetail": "",
+        "settingsSavedDetail": ""
+    },
+    "liveNotification": {
+        "defaultMessage": ""
+    },
+    "ui": {
+        "validation": {
+            "min": "",
+            "maxLength": "",
+            "parse": "",
+            "email": "",
+            "required": "",
+            "max": "",
+            "default": "",
+            "minLength": "",
+            "pattern": ""
+        },
+        "tag": {
+            "removeTag": "",
+            "removeLabel": ""
+        },
+        "input": {
+            "hidePassword": "",
+            "trailingAction": "",
+            "showPassword": ""
+        },
+        "select": {
+            "noResults": "",
+            "selectedCount": "",
+            "clearSelection": "",
+            "search": ""
+        },
+        "rating": {
+            "valueText": "",
+            "setRatingTo": ""
+        },
+        "message": {
+            "issueCount": "",
+            "issuePosition": "",
+            "previousIssue": "",
+            "nextIssue": ""
+        },
+        "spinner": {
+            "loading": ""
+        },
+        "autocomplete": {
+            "noResults": "",
+            "removeTag": ""
+        },
+        "datePicker": {
+            "nextMonth": "",
+            "previousMonth": ""
+        }
+    },
+    "message": {
+        "previousIssue": "",
+        "nextIssue": "",
+        "issuePosition": "",
+        "issueCount": ""
     }
-  }
 }

@@ -1,19 +1,19 @@
 {
-  "title": "",
-  "description": "",
-  "sectionTitle": "",
-  "filterPlaceholder": "",
-  "userFilterPlaceholder": "",
-  "dateRangePlaceholder": "",
-  "clearFilters": "",
-  "autoRefresh": "",
-  "pageReport": "",
-  "empty": "",
-  "columns": {
-    "timestamp": "",
-    "user": "",
-    "action": "",
+    "title": "",
+    "columns": {
+        "timestamp": "",
+        "action": "",
+        "ip": "",
+        "user": "",
+        "description": ""
+    },
+    "filterPlaceholder": "",
+    "pageReport": "",
     "description": "",
-    "ip": ""
-  }
+    "dateRangePlaceholder": "",
+    "clearFilters": "",
+    "sectionTitle": "",
+    "empty": "",
+    "autoRefresh": "",
+    "userFilterPlaceholder": ""
 }

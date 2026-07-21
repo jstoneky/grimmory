@@ -42,6 +42,7 @@ public class CbxMetadataWriter implements MetadataWriter {
 
     // Cache JAXBContext for performance
     private static final JAXBContext JAXB_CONTEXT;
+    private static final Pattern COMIC_ID_PATTERN = Pattern.compile("\\d+-\\d+");
 
     static {
         try {
@@ -231,7 +232,7 @@ public class CbxMetadataWriter implements MetadataWriter {
                 primaryUrl = "https://comicvine.gamespot.com/volume/" + cvId + "/";
             } else if (cvId.startsWith("4000-")) {
                 primaryUrl = "https://comicvine.gamespot.com/issue/" + cvId + "/";
-            } else if (cvId.matches("\\d+-\\d+")) {
+            } else if (COMIC_ID_PATTERN.matcher(cvId).matches()) {
                 // Already prefixed with some other Comicvine namespace; preserve as-is.
                 primaryUrl = "https://comicvine.gamespot.com/issue/" + cvId + "/";
             } else {

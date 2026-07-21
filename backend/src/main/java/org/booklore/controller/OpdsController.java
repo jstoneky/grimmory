@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,7 +49,7 @@ public class OpdsController {
         @ApiResponse(responseCode = "404", description = "Book not found")
     })
     @GetMapping("/{bookId}/download")
-    public ResponseEntity<Resource> downloadBook(
+    public ResponseEntity<StreamingResponseBody> downloadBook(
             @Parameter(description = "ID of the book to download") @PathVariable("bookId") Long bookId,
             @Parameter(description = "Optional ID of a specific file format to download") @RequestParam(required = false) Long fileId) {
         opdsBookService.validateBookContentAccess(bookId, getOpdsUserId());
@@ -67,6 +68,16 @@ public class OpdsController {
     public ResponseEntity<Resource> getBookCover(@Parameter(description = "ID of the book") @PathVariable long bookId) {
         opdsBookService.validateBookContentAccess(bookId, getOpdsUserId());
         Resource coverImage = bookService.getBookThumbnail(bookId);
+
+        if (coverImage == null) {
+            // Fall back to audiobook if possible
+            coverImage = bookService.getAudiobookCover(bookId);
+        }
+
+        if (coverImage == null) {
+            return ResponseEntity.notFound().build();
+        }
+
         String contentType = "image/jpeg";
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))

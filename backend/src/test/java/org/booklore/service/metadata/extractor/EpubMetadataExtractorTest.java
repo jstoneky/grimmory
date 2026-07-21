@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,7 +32,7 @@ class EpubMetadataExtractorTest {
 
     @BeforeEach
     void setUp() {
-        extractor = new EpubMetadataExtractor();
+        extractor = new EpubMetadataExtractor(new ObjectMapper());
     }
 
     private File createEpub(String opfContent) throws IOException {
@@ -183,6 +184,60 @@ class EpubMetadataExtractorTest {
 
             assertThat(metadata.getTitle()).isEqualTo("Main Title");
             assertThat(metadata.getSubtitle()).isEqualTo("The Subtitle");
+        }
+
+        @Test
+        void distinguishesMainTitleWithoutRefines() throws IOException {
+            String opf = wrapOpf("""
+                    <dc:title id="maintitle">Main Title</dc:title>
+                    <dc:title id="subtitle">The Subtitle</dc:title>
+                    """);
+            BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
+
+            assertThat(metadata.getTitle()).isEqualTo("Main Title");
+            assertThat(metadata.getSubtitle()).isNull();
+        }
+
+        @Test
+        void distinguishesMainTitleWithoutIDsOrRefines() throws IOException {
+            String opf = wrapOpf("""
+                    <dc:title>Main Title</dc:title>
+                    <dc:title>The Subtitle</dc:title>
+                    """);
+            BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
+
+            assertThat(metadata.getTitle()).isEqualTo("Main Title");
+            assertThat(metadata.getSubtitle()).isNull();
+        }
+
+        @Test
+        void distinguishesRefinedOverrideFallbackBehavior() throws IOException {
+            String opf = wrapOpf("""
+                    <dc:title>Something else</dc:title>
+                    <dc:title id="t1">Another something else</dc:title>
+                    <dc:title id="t2">Main Title</dc:title>
+                    <dc:title id="t3">Another title</dc:title>
+                    <dc:title id="t4">The Subtitle</dc:title>
+                    <dc:title>Even more titles</dc:title>
+                    <meta refines="#t2" property="title-type">main</meta>
+                    <meta refines="#t4" property="title-type">subtitle</meta>
+                    """);
+            BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
+
+            assertThat(metadata.getTitle()).isEqualTo("Main Title");
+            assertThat(metadata.getSubtitle()).isEqualTo("The Subtitle");
+        }
+
+        @Test
+        void blankTitlesFallbackToFilename() throws IOException {
+            String opf = wrapOpf("""
+                    <dc:title> </dc:title>
+                    <dc:title>The Subtitle</dc:title>
+                    """);
+            BookMetadata metadata = extractor.extractMetadata(createEpub(opf));
+
+            assertThat(metadata.getTitle()).isEqualTo("test");
+            assertThat(metadata.getSubtitle()).isNull();
         }
 
         @Test

@@ -1,0 +1,251 @@
+import Aura from '@primeuix/themes/aura';
+import {$t, definePreset} from '@primeuix/themes';
+
+export type ColorPalette = Record<string, string>;
+
+export interface ResolvedThemePalettes {
+  primary: ColorPalette;
+  surface: ColorPalette;
+}
+
+const COLOR_STOPS = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const;
+const SURFACE_STOPS = ['0', ...COLOR_STOPS] as const;
+
+/*
+ * PrimeNG theme bridge.
+ *
+ * App-owned CSS tokens define the native shell/page foundation. This file only
+ * extends Prime's Aura preset so Prime components can use the same app-selected
+ * palettes and the same Tailwind-owned page background.
+ */
+
+/** Popup menu surfaces use card elevation, not page canvas. */
+const menuRoot = { background: 'var(--color-card)' };
+
+/*
+ * Aura light outlined buttons default to *-200 borders — too faint on --color-card.
+ * Use *-400 borders and *-600 text: readable without feeling heavy.
+ */
+const lightOutlinedButton = {
+  primary: { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' },
+  secondary: { borderColor: '{surface.400}', color: '{surface.600}' },
+  plain: { borderColor: '{surface.400}', color: '{surface.600}' },
+  success: { borderColor: '{green.400}', color: '{green.600}' },
+  info: { borderColor: '{sky.400}', color: '{sky.600}' },
+  warn: { borderColor: '{orange.400}', color: '{orange.600}' },
+  danger: { borderColor: '{red.400}', color: '{red.600}' },
+  help: { borderColor: '{purple.400}', color: '{purple.600}' },
+};
+
+const appPrimary = {
+  color: 'var(--color-primary)',
+  contrastColor: 'var(--color-primary-contrast)',
+  hoverColor: 'var(--color-primary-hover)',
+  activeColor: 'var(--color-primary-active)',
+};
+
+const appHighlight = {
+  background: 'color-mix(in srgb, var(--color-primary), transparent 84%)',
+  focusBackground: 'color-mix(in srgb, var(--color-primary), transparent 76%)',
+  color: 'var(--color-primary-text)',
+  focusColor: 'var(--color-primary-text)',
+};
+
+const appInputText = {
+  focusBorderColor: 'var(--control-focus-border)',
+  focusRing: {
+    width: '0',
+    style: 'none',
+    color: 'transparent',
+    offset: '0',
+    shadow: 'none',
+  },
+};
+
+const contentSurface = {
+  background: 'var(--color-page)',
+  borderColor: 'var(--color-border)',
+  color: 'var(--color-text)',
+};
+
+const overlaySurface = {
+  background: 'var(--color-card)',
+  borderColor: 'var(--color-border)',
+  color: 'var(--color-text)',
+};
+
+const compactPrimeFontCss = `
+.p-button:not(.p-button-sm):not(.p-button-lg),
+.p-inputtext:not(.p-inputtext-sm):not(.p-inputtext-lg),
+.p-textarea:not(.p-textarea-sm):not(.p-textarea-lg),
+.p-select:not(.p-select-sm):not(.p-select-lg) .p-select-label,
+.p-multiselect:not(.p-multiselect-sm):not(.p-multiselect-lg) .p-multiselect-label,
+.p-cascadeselect:not(.p-cascadeselect-sm):not(.p-cascadeselect-lg) .p-cascadeselect-label,
+.p-treeselect:not(.p-treeselect-sm):not(.p-treeselect-lg) .p-treeselect-label,
+.p-autocomplete-input,
+.p-autocomplete-input-multiple,
+.p-togglebutton:not(.p-togglebutton-sm):not(.p-togglebutton-lg),
+.p-inputchips-input-item input,
+.p-terminal-prompt-value,
+.p-datepicker-day-view,
+.p-datepicker-time-picker span {
+  font-size: var(--app-text-base);
+}
+`;
+
+const PRIME_REM_SCALE = 0.875;
+
+function isDigit(value: string): boolean {
+  return value >= '0' && value <= '9';
+}
+
+function findRemNumberStart(value: string, remIndex: number): number | undefined {
+  let start = remIndex;
+  let digitCount = 0;
+
+  while (start > 0 && isDigit(value[start - 1])) {
+    start -= 1;
+    digitCount += 1;
+  }
+
+  if (start > 0 && value[start - 1] === '.') {
+    start -= 1;
+    while (start > 0 && isDigit(value[start - 1])) {
+      start -= 1;
+      digitCount += 1;
+    }
+  }
+
+  if (start > 0 && value[start - 1] === '-') {
+    start -= 1;
+  }
+
+  return digitCount > 0 ? start : undefined;
+}
+
+function scaleRemString(value: string): string {
+  let result = '';
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const remIndex = value.indexOf('rem', cursor);
+    if (remIndex === -1) {
+      return result + value.slice(cursor);
+    }
+
+    const numberStart = findRemNumberStart(value, remIndex);
+    if (numberStart === undefined) {
+      result += value.slice(cursor, remIndex + 3);
+      cursor = remIndex + 3;
+      continue;
+    }
+
+    const scaled = Number.parseFloat(
+      (Number(value.slice(numberStart, remIndex)) * PRIME_REM_SCALE).toFixed(4)
+    ).toString();
+    result += `${value.slice(cursor, numberStart)}${scaled}rem`;
+    cursor = remIndex + 3;
+  }
+
+  return result;
+}
+
+function scalePrimeRems<T>(value: T): T {
+  if (typeof value === 'string') {
+    return scaleRemString(value) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(scalePrimeRems) as T;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, scalePrimeRems(entry)])
+    ) as T;
+  }
+  return value;
+}
+
+const AppPrimeBasePreset = scalePrimeRems(Aura);
+
+function buildAppTokenPalette(prefix: 'primary' | 'surface', stops: readonly string[]): ColorPalette {
+  return Object.fromEntries(
+    stops.map((stop) => [stop, `var(--color-${prefix}-${stop})`])
+  );
+}
+
+const appTokenPalettes: ResolvedThemePalettes = {
+  primary: buildAppTokenPalette('primary', COLOR_STOPS),
+  surface: buildAppTokenPalette('surface', SURFACE_STOPS),
+};
+
+export function primeThemeTokenPalettes(): ResolvedThemePalettes {
+  return appTokenPalettes;
+}
+
+function buildPrimePalettePreset(theme: ResolvedThemePalettes): object {
+  return {
+    semantic: {
+      primary: theme.primary,
+      colorScheme: {
+        light: {
+          primary: appPrimary,
+          highlight: appHighlight,
+        },
+        dark: {
+          primary: appPrimary,
+          highlight: appHighlight,
+        },
+      },
+    },
+  };
+}
+
+const AppPrimePreset = definePreset(AppPrimeBasePreset, {
+  css: compactPrimeFontCss,
+  semantic: {
+    colorScheme: {
+      light: {
+        content: contentSurface,
+        overlay: {
+          popover: overlaySurface,
+          modal: overlaySurface,
+        },
+      },
+      dark: {
+        content: contentSurface,
+        overlay: {
+          popover: overlaySurface,
+          modal: overlaySurface,
+        },
+        navigation: {
+          item: {
+            focusBackground: 'color-mix(in srgb, {text.color}, transparent 92%)',
+            activeBackground: 'color-mix(in srgb, {text.color}, transparent 92%)',
+          },
+        },
+      },
+    },
+  },
+  components: {
+    menu: { root: menuRoot },
+    tieredmenu: { root: menuRoot },
+    contextmenu: { root: menuRoot },
+    menubar: { submenu: menuRoot },
+    inputtext: { root: appInputText },
+    button: {
+      colorScheme: {
+        light: { outlined: lightOutlinedButton },
+      },
+    },
+  },
+});
+
+export function applyPrimeTheme(theme: ResolvedThemePalettes): void {
+  $t()
+    .preset(AppPrimePreset)
+    .preset(buildPrimePalettePreset(theme))
+    .surfacePalette(theme.surface)
+    .use({useDefaultOptions: true});
+}
+
+export default AppPrimePreset;

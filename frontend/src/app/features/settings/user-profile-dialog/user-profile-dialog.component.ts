@@ -1,26 +1,12 @@
-import {NgClass} from '@angular/common';
-import {Component, DestroyRef, computed, effect, inject} from '@angular/core';
+import {Component, effect, inject} from '@angular/core';
 import {Button} from 'primeng/button';
 import {AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators} from '@angular/forms';
 import {InputText} from 'primeng/inputtext';
 import {Password} from 'primeng/password';
-import {User, UserService, UserUpdateRequest} from '../user-management/user.service';
+import {User, UserProfileUpdateRequest, UserService} from '../user-management/user.service';
 import {MessageService} from 'primeng/api';
 import {DynamicDialogRef} from 'primeng/dynamicdialog';
 import {TranslocoDirective, TranslocoPipe, TranslocoService} from '@jsverse/transloco';
-import {Select} from 'primeng/select';
-import {takeUntilDestroyed, toSignal} from '@angular/core/rxjs-interop';
-import {AVAILABLE_LANGS, LANG_LABELS} from '../../../core/config/transloco-loader';
-import {LANG_STORAGE_KEY} from '../../../core/config/language-initializer';
-import {AppConfigService} from '../../../shared/service/app-config.service';
-import Aura from '../../../shared/layout/theme-palette-extend';
-
-type ColorPalette = Record<string, string>;
-
-interface Palette {
-  name: string;
-  palette: ColorPalette;
-}
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const newPassword = control.get('newPassword');
@@ -41,8 +27,6 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
     ReactiveFormsModule,
     InputText,
     Password,
-    Select,
-    NgClass,
     TranslocoDirective,
     TranslocoPipe,
   ],
@@ -55,23 +39,12 @@ export class UserProfileDialogComponent {
   currentUser: User | null = null;
   editUserData: Partial<User> = {};
   changePasswordForm: FormGroup;
-  readonly languageOptions = AVAILABLE_LANGS.map(value => ({
-    value,
-    label: LANG_LABELS[value] ?? value,
-  }));
 
   protected readonly userService = inject(UserService);
-  protected readonly configService = inject(AppConfigService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(DynamicDialogRef);
   private readonly t = inject(TranslocoService);
-  private readonly destroyRef = inject(DestroyRef);
-  protected readonly activeLang = toSignal(this.t.langChanges$, {initialValue: this.t.getActiveLang()});
-  protected readonly selectedPrimaryColor = computed(() => this.configService.appState().primary);
-  protected readonly selectedSurfaceColor = computed(() => this.configService.appState().surface);
-  protected readonly surfaces = this.configService.surfaces;
-  protected readonly primaryColors = this.getPrimaryColors();
 
   constructor() {
     this.changePasswordForm = this.fb.group(
@@ -109,43 +82,6 @@ export class UserProfileDialogComponent {
     }
   }
 
-  onLanguageChange(lang: string): void {
-    if (lang === this.activeLang()) return;
-    this.t.load(lang).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.t.setActiveLang(lang);
-        localStorage.setItem(LANG_STORAGE_KEY, lang);
-      },
-    });
-  }
-
-  updateThemeColor(event: Event, type: 'primary' | 'surface', color: { name: string; palette?: ColorPalette }): void {
-    this.configService.appState.update((state) => ({
-      ...state,
-      [type]: color.name,
-    }));
-    event.stopPropagation();
-  }
-
-  private getPrimaryColors(): Palette[] {
-    const presetPalette = (Aura.primitive ?? {}) as Record<string, ColorPalette>;
-    const colors = [
-      'orange', 'amber', 'yellow', 'lime', 'green', 'emerald',
-      'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet',
-      'purple', 'fuchsia', 'pink', 'rose', 'red',
-      'coralSunset', 'roseBlush', 'melonBlush', 'cottonCandy',
-      'apricotSunrise', 'antiqueBronze', 'butteryYellow', 'vanillaCream',
-      'citrusMint', 'freshMint', 'sagePearl', 'skyBlue', 'periwinkleCream',
-      'pastelRoyalBlue', 'lavenderDream', 'dustyNeutral',
-    ];
-    return [{name: 'noir', palette: {}}].concat(
-      colors.map(name => ({
-        name,
-        palette: presetPalette[name] ?? {},
-      })),
-    );
-  }
-
   updateProfile(): void {
     if (!this.currentUser) {
       this.messageService.add({
@@ -162,11 +98,11 @@ export class UserProfileDialogComponent {
       return;
     }
 
-    const updateRequest: UserUpdateRequest = {
+    const updateRequest: UserProfileUpdateRequest = {
       name: this.editUserData.name,
       email: this.editUserData.email,
     };
-    this.userService.updateUser(this.currentUser.id, updateRequest).subscribe({
+    this.userService.updateUserProfile(this.currentUser.id, updateRequest).subscribe({
       next: () => {
         this.messageService.add({severity: 'success', summary: this.t.translate('common.success'), detail: this.t.translate('settingsProfile.toast.profileUpdated')});
         this.isEditing = false;

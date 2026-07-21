@@ -20,6 +20,7 @@ import org.booklore.service.hardcover.HardcoverSyncService;
 import org.booklore.service.kobo.KoboReadingStateBuilder;
 import org.booklore.service.kobo.KoboReadingStateService;
 import org.booklore.service.kobo.KoboSettingsService;
+import org.booklore.service.koreader.KoreaderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -75,6 +76,9 @@ class KoboReadingStateServiceTest {
     private HardcoverSyncService hardcoverSyncService;
 
     @Mock
+    private KoreaderService koreaderService;
+
+    @Mock
     private UserBookFileProgressRepository fileProgressRepository;
 
     @InjectMocks
@@ -115,8 +119,6 @@ class KoboReadingStateServiceTest {
                 .findFirstByEntitlementIdAndUserIdIsNullOrderByPriorityTimestampDescLastModifiedStringDescIdDesc(
                         anyString()))
                 .thenReturn(Optional.empty());
-        lenient().when(mapper.toJson(any())).thenCallRealMethod();
-        lenient().when(mapper.cleanString(any())).thenCallRealMethod();
     }
 
     private BookFileEntity setPrimaryEpub(Long bookFileId) {
@@ -476,23 +478,28 @@ class KoboReadingStateServiceTest {
         existingEntity.setUserId(1L);
 
         when(mapper.toDto(existingEntity)).thenReturn(existingState);
+        when(mapper.toEntity(any())).thenReturn(
+                KoboReadingStateEntity.builder()
+                        .build()
+        );
         when(repository.findByEntitlementIdAndUserId(entitlementId, 1L)).thenReturn(Optional.of(existingEntity));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ArgumentCaptor<KoboReadingStateEntity> entityCaptor = ArgumentCaptor.forClass(KoboReadingStateEntity.class);
         service.saveReadingState(List.of(incomingState));
-        verify(repository).save(entityCaptor.capture());
 
-        KoboReadingStateEntity saved = entityCaptor.getValue();
-        ObjectMapper objectMapper = new ObjectMapper();
-        KoboReadingState.StatusInfo savedStatus = objectMapper.readValue(saved.getStatusInfoJson(), KoboReadingState.StatusInfo.class);
-        KoboReadingState.CurrentBookmark savedBookmark = objectMapper.readValue(saved.getCurrentBookmarkJson(), KoboReadingState.CurrentBookmark.class);
-        KoboReadingState.Statistics savedStatistics = objectMapper.readValue(saved.getStatisticsJson(), KoboReadingState.Statistics.class);
+        ArgumentCaptor<KoboReadingState> dtoCaptor = ArgumentCaptor.forClass(KoboReadingState.class);
+        verify(mapper).toEntity(dtoCaptor.capture());
+
+        KoboReadingState saved = dtoCaptor.getValue();
+
+        KoboReadingState.StatusInfo savedStatus = saved.getStatusInfo();
+        KoboReadingState.CurrentBookmark savedBookmark = saved.getCurrentBookmark();
+        KoboReadingState.Statistics savedStatistics = saved.getStatistics();
 
         assertEquals(incomingStatus.getStatus(), savedStatus.getStatus());
         assertEquals(existingBookmark.getProgressPercent(), savedBookmark.getProgressPercent());
         assertEquals(existingStats.getSpentReadingMinutes(), savedStatistics.getSpentReadingMinutes());
-        assertEquals(newerTimestamp, saved.getLastModifiedString());
+        assertEquals(newerTimestamp, saved.getLastModified());
         assertEquals(newerTimestamp, saved.getPriorityTimestamp());
     }
 
@@ -533,19 +540,23 @@ class KoboReadingStateServiceTest {
         existingEntity.setUserId(1L);
 
         when(mapper.toDto(existingEntity)).thenReturn(existingState);
+        when(mapper.toEntity(any())).thenReturn(
+                KoboReadingStateEntity.builder()
+                        .build()
+        );
         when(repository.findByEntitlementIdAndUserId(entitlementId, 1L)).thenReturn(Optional.of(existingEntity));
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ArgumentCaptor<KoboReadingStateEntity> entityCaptor = ArgumentCaptor.forClass(KoboReadingStateEntity.class);
         service.saveReadingState(List.of(incomingState));
-        verify(repository).save(entityCaptor.capture());
 
-        KoboReadingStateEntity saved = entityCaptor.getValue();
-        ObjectMapper objectMapper = new ObjectMapper();
-        KoboReadingState.StatusInfo savedStatus = objectMapper.readValue(saved.getStatusInfoJson(), KoboReadingState.StatusInfo.class);
+        ArgumentCaptor<KoboReadingState> dtoCaptor = ArgumentCaptor.forClass(KoboReadingState.class);
+        verify(mapper).toEntity(dtoCaptor.capture());
+
+        KoboReadingState saved = dtoCaptor.getValue();
+        KoboReadingState.StatusInfo savedStatus = saved.getStatusInfo();
 
         assertEquals(existingStatus.getStatus(), savedStatus.getStatus());
-        assertEquals(timestamp, saved.getLastModifiedString());
+        assertEquals(timestamp, saved.getLastModified());
     }
 
     @Test
@@ -1222,6 +1233,7 @@ class KoboReadingStateServiceTest {
 
         service.saveReadingState(List.of(readingState));
 
+        verify(koreaderService).syncProgressToKoreader(eq(100L), eq(50f), eq(1L));
         verify(hardcoverSyncService).syncProgressToHardcover(eq(100L), eq(50f), eq(1L));
     }
 

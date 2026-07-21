@@ -21,6 +21,11 @@ public class BookLoreUser {
     private boolean isDefaultPassword;
     private String name;
     private String email;
+    private String locale;
+    private String theme;
+    private String themeAccent;
+    private boolean themeSyncEnabled;
+    private String uiFont;
     private ProvisioningMethod provisioningMethod;
     private List<Library> assignedLibraries;
     private UserPermissions permissions;

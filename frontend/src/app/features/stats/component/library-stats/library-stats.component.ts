@@ -17,6 +17,7 @@ import {LibraryFilterService, LibraryOption} from './service/library-filter.serv
 import {TranslocoDirective, TranslocoService} from '@jsverse/transloco';
 import {BookService} from '../../../book/service/book.service';
 import {LibraryService} from '../../../book/service/library.service';
+import {StatsChartThemeService} from '../shared/stats-chart-theme.service';
 
 interface ChartConfig {
   id: string;
@@ -24,6 +25,9 @@ interface ChartConfig {
   enabled: boolean;
   category: string;
 }
+
+import {provideCharts, withDefaultRegisterables} from 'ng2-charts';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 @Component({
   selector: 'app-library-stats',
@@ -44,6 +48,7 @@ interface ChartConfig {
     ReadingJourneyChartComponent,
     TranslocoDirective
   ],
+  providers: [provideCharts(withDefaultRegisterables(ChartDataLabels))],
   templateUrl: './library-stats.component.html',
   styleUrls: ['./library-stats.component.scss']
 })
@@ -53,6 +58,7 @@ export class LibraryStatsComponent {
   private readonly bookService = inject(BookService);
   private readonly libraryService = inject(LibraryService);
   private readonly t = inject(TranslocoService);
+  private readonly chartTheme = inject(StatsChartThemeService);
 
   public readonly isLoading = computed(() =>
     this.bookService.isBooksLoading() || this.libraryService.isLibrariesLoading()
@@ -73,6 +79,10 @@ export class LibraryStatsComponent {
   public showConfigPanel = false;
 
   public chartsConfig: ChartConfig[] = this.buildChartsConfig();
+
+  constructor() {
+    this.chartTheme.activate();
+  }
 
   onLibraryChange(selectedLibrary: LibraryOption | null): void {
     if (!selectedLibrary) {

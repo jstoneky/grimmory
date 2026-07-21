@@ -1,7 +1,9 @@
-import { computed, signal, WritableSignal } from '@angular/core';
+import { computed, Signal, signal, WritableSignal } from '@angular/core';
+import { CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MessageService } from 'primeng/api';
 
 import { getTranslocoModule } from '../../../core/testing/transloco-testing';
 import { BookDialogHelperService } from '../../../features/book/components/book-browser/book-dialog-helper.service';
@@ -19,30 +21,14 @@ import { BookdropFileService } from '../../../features/bookdrop/service/bookdrop
 import { AuthService } from '../../service/auth.service';
 import { MetadataBatchProgressNotification, MetadataBatchStatus } from '../../model/metadata-batch-progress.model';
 import { MetadataProgressService } from '../../service/metadata-progress.service';
+import { LibraryImportProgressService } from '../../service/library-import-progress.service';
 import { AppVersion, VersionService } from '../../service/version.service';
 import { DialogLauncherService } from '../../services/dialog-launcher.service';
 import { LayoutService } from '../layout.service';
+import { AppThemeService } from '../../service/app-theme.service';
+import type { AppearancePreference } from '../../model/app-state.model';
 
 import { AppSidebarComponent } from './app.sidebar.component';
-
-interface PopoverOverlay {
-  container: HTMLElement;
-  toggle: (event: MouseEvent) => void;
-}
-
-function createRect(top: number, bottom: number, left: number): DOMRect {
-  return {
-    x: left,
-    y: top,
-    top,
-    bottom,
-    left,
-    right: left + 40,
-    width: 40,
-    height: bottom - top,
-    toJSON: () => ({}),
-  } as DOMRect;
-}
 
 interface TestUser {
   name: string;
@@ -58,12 +44,17 @@ describe('AppSidebarComponent', () => {
   let versionInfo: BehaviorSubject<AppVersion>;
   let activeTasks$: BehaviorSubject<Record<string, MetadataBatchProgressNotification>>;
   let progressUpdates$: BehaviorSubject<MetadataBatchProgressNotification>;
-  let hasPendingFiles$: BehaviorSubject<boolean>;
+  let hasPendingFiles: WritableSignal<boolean>;
+  let hasActiveImport: WritableSignal<boolean>;
+  let setAppearancePreference: ReturnType<typeof vi.fn>;
+  let appState: WritableSignal<{ appearancePreference: AppearancePreference }>;
   const sidebarCollapsed = signal(false);
   const isDesktop = signal(true);
+  const currentPath = signal('/dashboard');
   const layoutService = {
     sidebarCollapsed,
     isDesktop,
+    currentPath,
     desktopSidebarCollapsed: computed(() => isDesktop() && sidebarCollapsed()),
     librarySort: signal({ field: 'name', order: 'desc' }),
     shelfSort: signal({ field: 'name', order: 'asc' }),
@@ -84,7 +75,12 @@ describe('AppSidebarComponent', () => {
       status: MetadataBatchStatus.COMPLETED,
       review: false,
     });
-    hasPendingFiles$ = new BehaviorSubject(false);
+    hasPendingFiles = signal(false);
+    hasActiveImport = signal(false);
+    appState = signal({ appearancePreference: 'system' });
+    setAppearancePreference = vi.fn((appearancePreference: AppearancePreference) => {
+      appState.update(state => ({...state, appearancePreference}));
+    });
 
     TestBed.configureTestingModule({
       imports: [AppSidebarComponent, getTranslocoModule()],
@@ -104,22 +100,32 @@ describe('AppSidebarComponent', () => {
         {
           provide: DialogLauncherService,
           useValue: {
-            openLibraryCreateDialog: vi.fn(),
-            openMagicShelfCreateDialog: vi.fn(),
-            openFileUploadDialog: vi.fn(),
+            openLibraryCreateDialog: vi.fn(() => Promise.resolve(null)),
+            openMagicShelfCreateDialog: vi.fn(() => Promise.resolve(null)),
+            openFileUploadDialog: vi.fn(() => Promise.resolve(null)),
           },
         },
         { provide: CommandPaletteService, useValue: commandPaletteService },
-        { provide: BookDialogHelperService, useValue: { openShelfCreatorDialog: vi.fn() } },
+        { provide: BookDialogHelperService, useValue: { openShelfCreatorDialog: vi.fn(() => Promise.resolve(null)) } },
         { provide: AuthService, useValue: { logout: vi.fn() } },
         { provide: MetadataProgressService, useValue: { activeTasks$, progressUpdates$ } },
-        { provide: BookdropFileService, useValue: { hasPendingFiles$ } },
+        { provide: BookdropFileService, useValue: { hasPendingFiles } },
+        { provide: LibraryImportProgressService, useValue: { hasActiveImport } },
         { provide: VersionService, useValue: { getVersion: vi.fn(() => versionInfo) } },
         { provide: LayoutService, useValue: layoutService },
         { provide: UserService, useValue: { currentUser } },
         { provide: MagicShelfService, useValue: { shelves: signal([]), bookCountByMagicShelfId: signal(new Map()) } },
         { provide: SeriesDataService, useValue: { allSeries: signal([]) } },
         { provide: AuthorService, useValue: { allAuthors: signal([]) } },
+        { provide: MessageService, useValue: { add: vi.fn() } },
+        {
+          provide: AppThemeService,
+          useValue: {
+            appState,
+            appearancePreference: computed(() => appState().appearancePreference),
+            setAppearancePreference,
+          },
+        },
       ],
     });
 
@@ -128,11 +134,8 @@ describe('AppSidebarComponent', () => {
     fixture = TestBed.createComponent(AppSidebarComponent);
     component = fixture.componentInstance;
     layoutService.isDesktop.set(true);
+    layoutService.currentPath.set('/dashboard');
     layoutService.closeMobileSidebar.mockReset();
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback: FrameRequestCallback): number => {
-      callback(0);
-      return 0;
-    });
   });
 
   afterEach(() => {
@@ -152,33 +155,33 @@ describe('AppSidebarComponent', () => {
     expect(layoutService.closeMobileSidebar).toHaveBeenCalled();
   });
 
-  it('anchors above-placement overlays from the trigger top edge when the sidebar is expanded', () => {
-    const trigger = document.createElement('button');
-    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(createRect(100, 148, 40));
-    const container = document.createElement('div');
-    const overlay = { container, toggle: vi.fn() };
-    const popoverHarness = component as unknown as { applySidebarOverlayPosition(overlay: PopoverOverlay): void };
+  it('opens the notifications overlay from the selected origin', () => {
+    const origin = {} as CdkOverlayOrigin;
+    const sidebar = component as unknown as {
+      notificationsOpen: () => boolean;
+      notificationPopoverOrigin: () => CdkOverlayOrigin | null;
+      toggleFooterNotificationsPopover(origin: CdkOverlayOrigin): void;
+    };
 
-    component.openSidebarOverlay({ currentTarget: trigger } as unknown as MouseEvent, overlay as never, 'above');
-    popoverHarness.applySidebarOverlayPosition(overlay);
+    sidebar.toggleFooterNotificationsPopover(origin);
 
-    expect(overlay.toggle).toHaveBeenCalled();
-    expect(container.style.getPropertyValue('--sidebar-popover-top')).toBe('92px');
-    expect(container.style.getPropertyValue('--sidebar-popover-left')).toBe('40px');
+    expect(sidebar.notificationsOpen()).toBe(true);
+    expect(sidebar.notificationPopoverOrigin()).toBe(origin);
   });
 
-  it('anchors below-placement overlays from the trigger bottom edge', () => {
-    const trigger = document.createElement('button');
-    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(createRect(220, 260, 24));
-    const container = document.createElement('div');
-    const overlay = { container, toggle: vi.fn() };
-    const popoverHarness = component as unknown as { applySidebarOverlayPosition(overlay: PopoverOverlay): void };
+  it('closes the notifications overlay when the same origin is toggled again', () => {
+    const origin = {} as CdkOverlayOrigin;
+    const sidebar = component as unknown as {
+      notificationsOpen: () => boolean;
+      notificationPopoverOrigin: () => CdkOverlayOrigin | null;
+      toggleFooterNotificationsPopover(origin: CdkOverlayOrigin): void;
+    };
 
-    component.openSidebarOverlay({ currentTarget: trigger } as unknown as MouseEvent, overlay as never, 'below');
-    popoverHarness.applySidebarOverlayPosition(overlay);
+    sidebar.toggleFooterNotificationsPopover(origin);
+    sidebar.toggleFooterNotificationsPopover(origin);
 
-    expect(container.style.getPropertyValue('--sidebar-popover-top')).toBe('268px');
-    expect(container.style.getPropertyValue('--sidebar-popover-left')).toBe('');
+    expect(sidebar.notificationsOpen()).toBe(false);
+    expect(sidebar.notificationPopoverOrigin()).toBeNull();
   });
 
   it('derives user initials from a multi-part display name', () => {
@@ -199,10 +202,35 @@ describe('AppSidebarComponent', () => {
     expect(component.userInitials()).toBe('A');
   });
 
+  it('marks settings active from the current layout path', () => {
+    const sidebar = component as unknown as { isSettingsActive: () => boolean };
+
+    expect(sidebar.isSettingsActive()).toBe(false);
+
+    layoutService.currentPath.set('/settings');
+
+    expect(sidebar.isSettingsActive()).toBe(true);
+  });
+
   it('returns an empty string when no user is signed in', () => {
     currentUser.set(null);
 
     expect(component.userInitials()).toBe('');
+  });
+
+  it('updates the appearance preference without closing the appearance menu', () => {
+    const sidebar = component as unknown as {
+      appearanceMenuOpen: Signal<boolean>;
+      toggleAppearanceMenu(): void;
+      updateAppearancePreference(appearancePreference: AppearancePreference): void;
+    };
+
+    sidebar.toggleAppearanceMenu();
+    sidebar.updateAppearancePreference('dark');
+
+    expect(setAppearancePreference).toHaveBeenCalledWith('dark');
+    expect(appState().appearancePreference).toBe('dark');
+    expect(sidebar.appearanceMenuOpen()).toBe(true);
   });
 
   it('normalizes semantic version labels with or without a leading v', () => {
@@ -231,27 +259,46 @@ describe('AppSidebarComponent', () => {
     expect(sidebar.updateAvailable()).toBe(true);
   });
 
-  it('anchors notifications above the trigger and keeps them inside the viewport on mobile', () => {
-    layoutService.isDesktop.set(false);
+  it('moves the notifications overlay when another origin is selected', () => {
+    const firstOrigin = {} as CdkOverlayOrigin;
+    const secondOrigin = {} as CdkOverlayOrigin;
+    const sidebar = component as unknown as {
+      notificationsOpen: () => boolean;
+      notificationPopoverOrigin: () => CdkOverlayOrigin | null;
+      toggleFooterNotificationsPopover(origin: CdkOverlayOrigin): void;
+      toggleHeaderNotificationsPopover(origin: CdkOverlayOrigin): void;
+    };
 
-    const trigger = document.createElement('button');
-    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(createRect(220, 260, 980));
-    const container = document.createElement('div');
-    Object.defineProperty(container, 'offsetWidth', { value: 120, configurable: true });
-    const overlay = { container, toggle: vi.fn() };
-    const popoverHarness = component as unknown as { applySidebarOverlayPosition(overlay: PopoverOverlay): void };
+    sidebar.toggleFooterNotificationsPopover(firstOrigin);
+    sidebar.toggleHeaderNotificationsPopover(secondOrigin);
 
-    component.openSidebarOverlay({ currentTarget: trigger } as unknown as MouseEvent, overlay as never, 'above');
-    popoverHarness.applySidebarOverlayPosition(overlay);
-
-    expect(container.style.getPropertyValue('--sidebar-popover-top')).toBe('212px');
-    expect(container.style.getPropertyValue('--sidebar-popover-left')).toBe(`${window.innerWidth - 128}px`);
+    expect(sidebar.notificationsOpen()).toBe(true);
+    expect(sidebar.notificationPopoverOrigin()).toBe(secondOrigin);
   });
 
-  it('aggregates metadata tasks and pending bookdrop files into the sidebar badge count', () => {
+  it('closes the notifications overlay when Escape is pressed inside the dialog', () => {
+    const origin = {} as CdkOverlayOrigin;
+    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    const preventDefault = vi.spyOn(event, 'preventDefault');
     const sidebar = component as unknown as {
-      completedTaskCount: number;
-      shouldShowNotificationBadge: boolean;
+      notificationsOpen: () => boolean;
+      notificationPopoverOrigin: () => CdkOverlayOrigin | null;
+      toggleFooterNotificationsPopover(origin: CdkOverlayOrigin): void;
+      onNotificationsPopoverKeydown(event: KeyboardEvent): void;
+    };
+
+    sidebar.toggleFooterNotificationsPopover(origin);
+    sidebar.onNotificationsPopoverKeydown(event);
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(sidebar.notificationsOpen()).toBe(false);
+    expect(sidebar.notificationPopoverOrigin()).toBeNull();
+  });
+
+  it('aggregates metadata tasks, library imports, and pending bookdrop files into the sidebar badge count', () => {
+    const sidebar = component as unknown as {
+      completedTaskCount: Signal<number>;
+      shouldShowNotificationBadge: Signal<boolean>;
     };
 
     activeTasks$.next({
@@ -272,15 +319,16 @@ describe('AppSidebarComponent', () => {
         review: true,
       },
     });
-    hasPendingFiles$.next(true);
+    hasPendingFiles.set(true);
+    hasActiveImport.set(true);
 
-    expect(sidebar.completedTaskCount).toBe(3);
-    expect(sidebar.shouldShowNotificationBadge).toBe(true);
+    expect(sidebar.completedTaskCount()).toBe(4);
+    expect(sidebar.shouldShowNotificationBadge()).toBe(true);
   });
 
   it('hides the badge while metadata progress is actively running', () => {
     const sidebar = component as unknown as {
-      shouldShowNotificationBadge: boolean;
+      shouldShowNotificationBadge: Signal<boolean>;
     };
 
     activeTasks$.next({
@@ -302,6 +350,6 @@ describe('AppSidebarComponent', () => {
       review: false,
     });
 
-    expect(sidebar.shouldShowNotificationBadge).toBe(false);
+    expect(sidebar.shouldShowNotificationBadge()).toBe(false);
   });
 });

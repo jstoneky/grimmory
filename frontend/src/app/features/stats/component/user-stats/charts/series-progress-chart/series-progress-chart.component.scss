@@ -1,3 +1,5 @@
+@use '../../../chart-shared' as chart-shared;
+
 .series-progress-container {
   width: 100%;
 }
@@ -6,27 +8,27 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.6563rem;
 
   .chart-title {
     flex: 1;
     min-width: 200px;
 
     h3 {
-      color: var(--text-color, #fff);
-      font-size: 1.25rem;
+      color: var(--color-text);
+      font-size: 1.0938rem;
       font-weight: 500;
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.4375rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4375rem;
     }
 
     .chart-description {
-      color: var(--text-secondary-color);
-      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      font-size: 0.7875rem;
       margin: 0;
       line-height: 1.4;
     }
@@ -34,76 +36,81 @@
 
   .series-summary {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4375rem;
 
     .summary-item {
       display: flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.35rem 0.6rem;
+      gap: 0.3063rem;
+      padding: 0.3063rem 0.525rem;
       border-radius: 16px;
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       font-weight: 600;
 
       i {
-        font-size: 0.75rem;
+        font-size: var(--app-text-xs);
       }
 
       &.completed {
-        background: rgb(76 175 80 / 20%);
-        color: #4caf50;
+        --stats-badge-accent: var(--color-green-500);
+
+        @include chart-shared.accent-surface(16px);
+        @include chart-shared.accent-text;
       }
 
       &.in-progress {
-        background: rgb(255 193 7 / 20%);
-        color: #ffc107;
+        --stats-badge-accent: var(--color-amber-500);
+
+        @include chart-shared.accent-surface(16px);
+        @include chart-shared.accent-text;
       }
 
       &.not-started {
-        background: rgb(158 158 158 / 20%);
-        color: #9e9e9e;
+        @include chart-shared.neutral-surface(16px);
+
+        color: var(--color-text-secondary);
       }
     }
   }
 }
 
 .series-icon {
-  font-size: 1.5rem;
-  color: #673ab7;
+  font-size: 1.3125rem;
+  color: var(--color-violet-700);
 }
 
 .stats-row {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.6563rem;
+  margin-bottom: 0.875rem;
   flex-wrap: wrap;
 
   .stat-pill {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.85rem;
-    background: rgb(255 255 255 / 5%);
-    border-radius: 20px;
-    border: 1px solid rgb(255 255 255 / 10%);
+    gap: 0.4375rem;
+    padding: 0.4375rem 0.7438rem;
+
+    @include chart-shared.neutral-surface(20px);
 
     .pill-value {
-      font-size: 1rem;
+      font-size: var(--app-text-base);
       font-weight: 600;
-      color: var(--text-color, #fff);
+      color: var(--color-text);
     }
 
     .pill-label {
-      font-size: 0.75rem;
-      color: var(--text-secondary-color);
+      font-size: var(--app-text-xs);
+      color: var(--color-text-secondary);
     }
 
     &.highlight {
-      background: rgb(103 58 183 / 15%);
-      border-color: rgb(103 58 183 / 30%);
+      --stats-badge-accent: var(--color-violet-700);
+
+      @include chart-shared.accent-surface(20px);
 
       .pill-value {
-        color: #673ab7;
+        @include chart-shared.accent-text;
       }
     }
   }
@@ -112,7 +119,7 @@
 .chart-wrapper {
   height: 300px;
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
 }
 
 .series-details {
@@ -120,28 +127,28 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6563rem;
 
     h4 {
-      color: var(--text-color, #fff);
-      font-size: 0.95rem;
+      color: var(--color-text);
+      font-size: 0.8313rem;
       font-weight: 500;
       margin: 0;
     }
 
     .series-count {
-      font-size: 0.75rem;
-      color: var(--text-secondary-color);
-      background: rgb(255 255 255 / 8%);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
+      font-size: var(--app-text-xs);
+      color: var(--color-text-secondary);
+      padding: 0.2188rem 0.4375rem;
+
+      @include chart-shared.neutral-surface(4px);
     }
   }
 
   .controls-row {
     display: flex;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: 0.6563rem;
+    margin-bottom: 0.6563rem;
     flex-wrap: wrap;
 
     .search-box {
@@ -150,15 +157,14 @@
       max-width: 250px;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.4rem 0.65rem;
-      background: rgb(255 255 255 / 5%);
-      border: 1px solid rgb(255 255 255 / 12%);
-      border-radius: 6px;
+      gap: 0.4375rem;
+      padding: 0.35rem 0.5687rem;
+
+      @include chart-shared.neutral-surface(6px);
 
       i {
-        color: var(--text-secondary-color);
-        font-size: 0.8rem;
+        color: var(--color-text-secondary);
+        font-size: 0.7rem;
       }
 
       input {
@@ -166,43 +172,42 @@
         background: transparent;
         border: none;
         outline: none;
-        color: var(--text-color, #fff);
-        font-size: 0.8rem;
+        color: var(--color-text);
+        font-size: 0.7rem;
         font-family: inherit;
 
         &::placeholder {
-          color: var(--text-secondary-color);
+          color: var(--color-text-secondary);
         }
       }
     }
 
     .filter-controls {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4375rem;
 
       .filter-select,
       .sort-select {
-        padding: 0.4rem 0.5rem;
-        background: rgb(255 255 255 / 5%);
-        border: 1px solid rgb(255 255 255 / 12%);
-        border-radius: 6px;
-        color: var(--text-color, #fff);
-        font-size: 0.75rem;
+        padding: 0.35rem 0.4375rem;
+        color: var(--color-text);
+        font-size: var(--app-text-xs);
         font-family: inherit;
         cursor: pointer;
         outline: none;
 
+        @include chart-shared.neutral-surface(6px);
+
         option {
-          background: #1e1e1e;
-          color: #fff;
+          background: var(--color-card);
+          color: var(--color-text);
         }
 
         &:hover {
-          border-color: rgb(255 255 255 / 25%);
+          border-color: color-mix(in srgb, var(--color-border) 90%, transparent);
         }
 
         &:focus {
-          border-color: #673ab7;
+          border-color: var(--color-violet-700);
         }
       }
     }
@@ -211,7 +216,7 @@
   .series-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.35rem;
     max-height: 360px;
     overflow-y: auto;
 
@@ -219,10 +224,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      padding: 1.5rem;
-      color: var(--text-secondary-color);
-      font-size: 0.85rem;
+      gap: 0.4375rem;
+      padding: 1.3125rem;
+      color: var(--color-text-secondary);
+      font-size: 0.7438rem;
 
       i {
         opacity: 0.5;
@@ -234,10 +239,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgb(255 255 255 / 8%);
+    gap: 0.6563rem;
+    margin-top: 0.6563rem;
+    padding-top: 0.6563rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
 
     .page-btn {
       display: flex;
@@ -245,20 +250,19 @@
       justify-content: center;
       width: 28px;
       height: 28px;
-      background: rgb(255 255 255 / 8%);
-      border: 1px solid rgb(255 255 255 / 12%);
-      border-radius: 6px;
-      color: var(--text-color, #fff);
+      color: var(--color-text);
       cursor: pointer;
       transition: all 0.2s ease;
 
+      @include chart-shared.neutral-surface(6px);
+
       i {
-        font-size: 0.7rem;
+        font-size: 0.6125rem;
       }
 
       &:hover:not(:disabled) {
-        background: rgb(103 58 183 / 30%);
-        border-color: #673ab7;
+        background: color-mix(in srgb, var(--color-violet-700) 18%, transparent);
+        border-color: color-mix(in srgb, var(--color-violet-700) 45%, transparent);
       }
 
       &:disabled {
@@ -268,45 +272,45 @@
     }
 
     .page-info {
-      font-size: 0.75rem;
-      color: var(--text-secondary-color);
+      font-size: var(--app-text-xs);
+      color: var(--color-text-secondary);
       min-width: 80px;
       text-align: center;
     }
   }
 
   .series-card {
-    padding: 0.5rem 0.75rem;
-    background: rgb(255 255 255 / 3%);
-    border-radius: 8px;
-    border: 1px solid rgb(255 255 255 / 8%);
+    padding: 0.4375rem 0.6563rem;
+
+    @include chart-shared.neutral-surface;
+
     border-left: 3px solid;
 
     &.completed {
-      border-left-color: #4caf50;
+      border-left-color: var(--color-green-500);
     }
 
     &.in-progress {
-      border-left-color: #ffc107;
+      border-left-color: var(--color-amber-500);
     }
 
     &.not-started {
-      border-left-color: #9e9e9e;
+      border-left-color: var(--color-text-muted);
     }
 
     &.abandoned {
-      border-left-color: #ef5350;
+      border-left-color: var(--color-red-500);
     }
 
     .series-main {
       display: flex;
       align-items: flex-start;
-      gap: 0.5rem;
-      margin-bottom: 0.35rem;
+      gap: 0.4375rem;
+      margin-bottom: 0.3063rem;
 
       .series-status-icon {
-        font-size: 0.9rem;
-        margin-top: 0.1rem;
+        font-size: 0.7875rem;
+        margin-top: 0.0875rem;
       }
 
       .series-info {
@@ -315,9 +319,9 @@
 
         .series-name {
           display: block;
-          font-size: 0.9rem;
+          font-size: 0.7875rem;
           font-weight: 500;
-          color: var(--text-color, #fff);
+          color: var(--color-text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -326,12 +330,12 @@
         .series-meta {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          margin-top: 0.2rem;
+          gap: 0.6563rem;
+          margin-top: 0.175rem;
 
           .books-count {
-            font-size: 0.75rem;
-            color: var(--text-secondary-color);
+            font-size: var(--app-text-xs);
+            color: var(--color-text-secondary);
 
             .total-hint {
               opacity: 0.7;
@@ -341,12 +345,12 @@
           .rating {
             display: flex;
             align-items: center;
-            gap: 0.2rem;
-            font-size: 0.75rem;
-            color: #ffc107;
+            gap: 0.175rem;
+            font-size: var(--app-text-xs);
+            color: var(--color-amber-500);
 
             i {
-              font-size: 0.65rem;
+              font-size: 0.5687rem;
             }
           }
         }
@@ -356,12 +360,12 @@
     .series-progress {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4375rem;
 
       .progress-bar-container {
         flex: 1;
         height: 6px;
-        background: rgb(255 255 255 / 10%);
+        background: color-mix(in srgb, var(--color-text) 8%, transparent);
         border-radius: 3px;
         overflow: hidden;
         position: relative;
@@ -375,37 +379,37 @@
 
           &.read {
             left: 0;
-            background: linear-gradient(90deg, #4caf50, #66bb6a);
+            background: linear-gradient(90deg, var(--color-green-500), var(--color-green-400));
           }
 
           &.reading {
-            background: #ffc107;
+            background: var(--color-amber-500);
           }
         }
       }
 
       .progress-text {
-        font-size: 0.75rem;
+        font-size: var(--app-text-xs);
         font-weight: 600;
-        color: var(--text-color, #fff);
+        color: var(--color-text);
         min-width: 32px;
         text-align: right;
       }
     }
 
     .next-up {
-      margin-top: 0.35rem;
-      padding-top: 0.3rem;
-      border-top: 1px dashed rgb(255 255 255 / 10%);
-      font-size: 0.7rem;
+      margin-top: 0.3063rem;
+      padding-top: 0.2625rem;
+      border-top: 1px dashed color-mix(in srgb, var(--color-border) 70%, transparent);
+      font-size: 0.6125rem;
 
       .next-label {
-        color: var(--text-secondary-color);
-        margin-right: 0.35rem;
+        color: var(--color-text-secondary);
+        margin-right: 0.3063rem;
       }
 
       .next-title {
-        color: #673ab7;
+        color: var(--color-violet-700);
         font-weight: 500;
       }
     }
@@ -417,24 +421,24 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 2.1875rem;
   text-align: center;
-  color: var(--text-secondary-color);
+  color: var(--color-text-secondary);
 
   i {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.75rem;
+    margin-bottom: 0.6563rem;
     opacity: 0.5;
   }
 
   p {
-    font-size: 0.95rem;
-    margin: 0 0 0.35rem;
-    color: var(--text-color, #fff);
+    font-size: 0.8313rem;
+    margin: 0 0 0.3063rem;
+    color: var(--color-text);
   }
 
   small {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     opacity: 0.7;
   }
 }
@@ -483,46 +487,46 @@
   .chart-header {
     .chart-title {
       h3 {
-        font-size: 1.05rem;
+        font-size: 0.9187rem;
       }
 
       .chart-description {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
       }
     }
 
     .series-summary {
       .summary-item {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
+        padding: 0.2188rem 0.4375rem;
+        font-size: var(--app-text-xs);
       }
     }
   }
 
   .stats-row {
-    gap: 0.5rem;
+    gap: 0.4375rem;
 
     .stat-pill {
-      padding: 0.4rem 0.6rem;
+      padding: 0.35rem 0.525rem;
 
       .pill-value {
-        font-size: 0.9rem;
+        font-size: 0.7875rem;
       }
 
       .pill-label {
-        font-size: 0.7rem;
+        font-size: 0.6125rem;
       }
     }
   }
 
   .series-details {
     .series-card {
-      padding: 0.5rem 0.65rem;
+      padding: 0.4375rem 0.5687rem;
 
       .series-main {
         .series-info {
           .series-name {
-            font-size: 0.85rem;
+            font-size: 0.7438rem;
           }
         }
       }

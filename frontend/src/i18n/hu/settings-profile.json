@@ -1,34 +1,34 @@
 {
-  "title": "",
-  "description": "",
-  "basicInfo": "",
-  "username": "",
-  "usernamePlaceholder": "",
-  "fullName": "",
-  "fullNamePlaceholder": "",
-  "email": "",
-  "emailPlaceholder": "",
-  "editProfile": "",
-  "saveChanges": "",
-  "security": "",
-  "currentPassword": "",
-  "newPassword": "",
-  "confirmNewPassword": "",
-  "changePassword": "",
-  "loading": "",
-  "validation": {
-    "currentPasswordRequired": "",
-    "newPasswordRequired": "",
-    "passwordMinLength": "",
-    "confirmPasswordRequired": "",
-    "passwordMismatch": ""
-  },
-  "toast": {
-    "errorNoUser": "",
-    "noChanges": "",
-    "profileUpdated": "",
-    "profileUpdateFailed": "",
-    "passwordChanged": "",
-    "passwordChangeFailed": ""
-  }
+    "title": "",
+    "usernamePlaceholder": "",
+    "toast": {
+        "passwordChanged": "",
+        "profileUpdateFailed": "",
+        "errorNoUser": "",
+        "passwordChangeFailed": "",
+        "profileUpdated": "",
+        "noChanges": ""
+    },
+    "validation": {
+        "passwordMismatch": "",
+        "passwordMinLength": "",
+        "confirmPasswordRequired": "",
+        "currentPasswordRequired": "",
+        "newPasswordRequired": ""
+    },
+    "currentPassword": "",
+    "email": "",
+    "description": "",
+    "username": "",
+    "basicInfo": "",
+    "newPassword": "",
+    "fullNamePlaceholder": "",
+    "editProfile": "",
+    "confirmNewPassword": "",
+    "saveChanges": "",
+    "emailPlaceholder": "",
+    "loading": "",
+    "security": "",
+    "changePassword": "",
+    "fullName": ""
 }

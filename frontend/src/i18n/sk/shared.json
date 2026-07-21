@@ -1,154 +1,209 @@
 {
-  "bookUploader": {
-    "title": "Importovať knihy",
-    "description": "",
-    "uploadDestination": "",
-    "librarySelection": "",
-    "libraryLabel": "",
-    "selectLibrary": "",
-    "subpathLabel": "",
-    "selectSubpath": "",
-    "selectFiles": "",
-    "chooseBtn": "",
-    "chooseTooltip": "",
-    "uploadBtn": "",
-    "uploadTooltip": "",
-    "clearBtn": "",
-    "clearTooltip": "",
-    "uploadHint": "",
-    "uploading": "",
-    "complete": "",
-    "filesCount": "",
-    "failedCount": "",
-    "dragDropTitle": "",
-    "supportedFormats": "",
-    "maxFileSize": "",
-    "fileTooLargeTooltip": "",
-    "uploadFailedTooltip": "",
-    "statusTooLarge": "",
-    "statusReady": "",
-    "statusUploading": "",
-    "statusUploaded": "",
-    "statusFailed": "",
-    "destinationLibrary": "",
-    "destinationBookdrop": "",
-    "toast": {
-      "noDestinationSummary": "",
-      "noDestinationDetail": "",
-      "fileTooLargeSummary": "",
-      "fileTooLargeDetail": "",
-      "missingDataSummary": "",
-      "missingDataDetail": "",
-      "uploadFailedDefault": ""
-    }
-  },
-  "changePassword": {
-    "title": "",
-    "subtitle": "",
-    "currentPasswordLabel": "",
-    "currentPasswordPlaceholder": "",
-    "newPasswordLabel": "",
-    "newPasswordPlaceholder": "",
-    "confirmPasswordLabel": "",
-    "confirmPasswordPlaceholder": "",
-    "updateBtn": "",
-    "validation": {
-      "passwordsMismatch": "",
-      "allFieldsRequired": "",
-      "passwordsDoNotMatch": "",
-      "sameAsCurrentPassword": ""
+    "bookUploader": {
+        "title": "Importovať knihy",
+        "selectLibrary": "",
+        "supportedFormats": "",
+        "clearTooltip": "",
+        "dragDropTitle": "",
+        "statusReady": "",
+        "uploading": "",
+        "statusTooLarge": "",
+        "clearBtn": "",
+        "destinationLibrary": "",
+        "selectFiles": "",
+        "description": "",
+        "librarySelection": "",
+        "libraryLabel": "",
+        "toast": {
+            "noDestinationDetail": "",
+            "uploadFailedDefault": "",
+            "fileTooLargeDetail": "",
+            "missingDataSummary": "",
+            "noDestinationSummary": "",
+            "missingDataDetail": "",
+            "fileTooLargeSummary": ""
+        },
+        "filesCount": "",
+        "statusUploading": "",
+        "failedCount": "",
+        "uploadFailedTooltip": "",
+        "fileTooLargeTooltip": "",
+        "maxFileSize": "",
+        "statusFailed": "",
+        "uploadTooltip": "",
+        "destinationBookdrop": "",
+        "uploadDestination": "",
+        "chooseTooltip": "",
+        "subpathLabel": "",
+        "chooseBtn": "",
+        "statusUploaded": "",
+        "uploadBtn": "",
+        "complete": "",
+        "selectSubpath": "",
+        "uploadHint": ""
     },
-    "toast": {
-      "success": "",
-      "failedSummary": "",
-      "failedDetailDefault": ""
-    }
-  },
-  "directoryPicker": {
-    "title": "",
-    "description": "",
-    "currentPath": "",
-    "searchPlaceholder": "",
-    "goUpTooltip": "",
-    "selectAllBtn": "",
-    "selectAllTooltip": "",
-    "deselectAllBtn": "",
-    "deselectAllTooltip": "",
-    "selectCurrentBtn": "",
-    "selectCurrentTooltip": "",
-    "foldersSelected": "",
-    "foldersSelectedPlural": "",
-    "loadingDirectories": "",
-    "noMatchesFound": "",
-    "directoryEmpty": "",
-    "noMatchesDescription": "",
-    "emptyDescription": "",
-    "folderAvailable": "",
-    "foldersAvailable": "",
-    "folderWillBeSelected": "",
-    "foldersWillBeSelected": "",
-    "selectDirectoriesBtn": ""
-  },
-  "liveNotification": {
-    "defaultMessage": ""
-  },
-  "metadataProgress": {
-    "taskStalled": "",
-    "taskCancelled": "",
-    "cancellationScheduledSummary": "",
-    "cancellationScheduledDetail": "",
-    "cancelFailedSummary": "",
-    "cancelFailedDetail": "",
-    "taskTitle": "",
-    "tagReview": "",
-    "tagAuto": "",
-    "bookProgress": "",
-    "reviewBtn": "",
-    "discardBtn": "",
-    "dismissBtn": "",
-    "discardTooltip": "",
-    "cancelBtn": "",
-    "cancelTooltip": "",
-    "statusInProgress": "",
-    "statusCompleted": "",
-    "statusError": "",
-    "statusCancelled": ""
-  },
-  "reader": {
-    "failedToLoadPages": "",
-    "failedToLoadBook": ""
-  },
-  "settingsHelper": {
-    "settingsSavedSummary": "",
-    "settingsSavedDetail": "",
-    "saveErrorDetail": ""
-  },
-  "setup": {
-    "title": "",
-    "subtitle": "",
-    "usernameLabel": "",
-    "usernamePlaceholder": "",
-    "fullNameLabel": "",
-    "fullNamePlaceholder": "",
-    "emailLabel": "",
-    "emailPlaceholder": "",
-    "passwordLabel": "",
-    "passwordPlaceholder": "",
-    "confirmPasswordLabel": "",
-    "confirmPasswordPlaceholder": "",
-    "createAccountBtn": "",
-    "creatingAccountBtn": "",
-    "successMessage": "",
-    "validation": {
-      "usernameRequired": "",
-      "nameRequired": "",
-      "emailRequired": "",
-      "passwordMinLength": "",
-      "confirmPasswordRequired": "",
-      "passwordsMismatch": ""
+    "setup": {
+        "creatingAccountBtn": "",
+        "validation": {
+            "passwordsMismatch": "",
+            "nameRequired": "",
+            "passwordMinLength": "",
+            "usernameRequired": "",
+            "emailRequired": "",
+            "confirmPasswordRequired": ""
+        },
+        "successMessage": "",
+        "fullNamePlaceholder": "",
+        "createAccountBtn": "",
+        "confirmPasswordLabel": "",
+        "usernameLabel": "",
+        "usernamePlaceholder": "",
+        "subtitle": "",
+        "confirmPasswordPlaceholder": "",
+        "emailLabel": "",
+        "title": "",
+        "toast": {
+            "createFailedDefault": ""
+        },
+        "passwordPlaceholder": "",
+        "passwordLabel": "",
+        "emailPlaceholder": "",
+        "fullNameLabel": ""
     },
-    "toast": {
-      "createFailedDefault": ""
+    "directoryPicker": {
+        "directoryEmpty": "",
+        "foldersAvailable": "",
+        "selectCurrentBtn": "",
+        "selectAllBtn": "",
+        "selectAllTooltip": "",
+        "foldersSelected": "",
+        "description": "",
+        "selectCurrentTooltip": "",
+        "title": "",
+        "foldersSelectedPlural": "",
+        "emptyDescription": "",
+        "folderAvailable": "",
+        "deselectAllBtn": "",
+        "currentPath": "",
+        "foldersWillBeSelected": "",
+        "searchPlaceholder": "",
+        "deselectAllTooltip": "",
+        "folderWillBeSelected": "",
+        "goUpTooltip": "",
+        "selectDirectoriesBtn": "",
+        "loadingDirectories": "",
+        "noMatchesFound": "",
+        "noMatchesDescription": ""
+    },
+    "metadataProgress": {
+        "cancelFailedSummary": "",
+        "dismissBtn": "",
+        "reviewBtn": "",
+        "statusCancelled": "",
+        "statusError": "",
+        "cancellationScheduledSummary": "",
+        "cancelBtn": "",
+        "cancelFailedDetail": "",
+        "statusInProgress": "",
+        "statusCompleted": "",
+        "tagAuto": "",
+        "taskCancelled": "",
+        "cancellationScheduledDetail": "",
+        "bookProgress": "",
+        "taskStalled": "",
+        "tagReview": "",
+        "taskTitle": "",
+        "cancelTooltip": "",
+        "discardBtn": "",
+        "discardTooltip": ""
+    },
+    "reader": {
+        "failedToLoadPages": "",
+        "failedToLoadBook": ""
+    },
+    "changePassword": {
+        "toast": {
+            "success": "",
+            "failedSummary": "",
+            "failedDetailDefault": ""
+        },
+        "subtitle": "",
+        "newPasswordPlaceholder": "",
+        "validation": {
+            "sameAsCurrentPassword": "",
+            "passwordsMismatch": "",
+            "allFieldsRequired": "",
+            "passwordsDoNotMatch": ""
+        },
+        "title": "",
+        "newPasswordLabel": "",
+        "currentPasswordLabel": "",
+        "confirmPasswordLabel": "",
+        "updateBtn": "",
+        "confirmPasswordPlaceholder": "",
+        "currentPasswordPlaceholder": ""
+    },
+    "settingsHelper": {
+        "settingsSavedSummary": "",
+        "saveErrorDetail": "",
+        "settingsSavedDetail": ""
+    },
+    "liveNotification": {
+        "defaultMessage": ""
+    },
+    "ui": {
+        "validation": {
+            "min": "",
+            "maxLength": "",
+            "parse": "",
+            "email": "",
+            "required": "",
+            "max": "",
+            "default": "",
+            "minLength": "",
+            "pattern": ""
+        },
+        "tag": {
+            "removeTag": "",
+            "removeLabel": ""
+        },
+        "input": {
+            "hidePassword": "",
+            "trailingAction": "",
+            "showPassword": ""
+        },
+        "select": {
+            "noResults": "",
+            "selectedCount": "",
+            "clearSelection": "",
+            "search": ""
+        },
+        "rating": {
+            "valueText": "",
+            "setRatingTo": ""
+        },
+        "message": {
+            "issueCount": "",
+            "issuePosition": "",
+            "previousIssue": "",
+            "nextIssue": ""
+        },
+        "spinner": {
+            "loading": ""
+        },
+        "autocomplete": {
+            "noResults": "",
+            "removeTag": ""
+        },
+        "datePicker": {
+            "nextMonth": "",
+            "previousMonth": ""
+        }
+    },
+    "message": {
+        "previousIssue": "",
+        "nextIssue": "",
+        "issuePosition": "",
+        "issueCount": ""
     }
-  }
 }

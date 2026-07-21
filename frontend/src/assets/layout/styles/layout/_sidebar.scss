@@ -14,7 +14,7 @@
   --sidebar-header-padding-inline-start: var(--space-2);
   --sidebar-header-padding-inline-end: var(--space-1);
   --sidebar-header-gap-after: var(--space-2);
-  --sidebar-row-min-height: 2.25rem;
+  --sidebar-row-min-height: 1.9688rem;
   --sidebar-row-padding-block: var(--space-2);
   --sidebar-row-padding-inline-start: var(--space-2);
   --sidebar-row-padding-inline-end: var(--space-1);
@@ -25,12 +25,12 @@
   --sidebar-group-gap: var(--space-3);
   --sidebar-section-spacing-before: var(--space-3);
   --sidebar-section-spacing-after: var(--space-1);
-  --sidebar-section-min-height: 1.25rem;
+  --sidebar-section-min-height: 1.0938rem;
   --sidebar-section-inline-start: var(--space-2);
   --sidebar-section-inline-end: var(--space-3);
-  --sidebar-section-font-size: var(--text-xs);
+  --sidebar-section-font-size: var(--app-text-xs);
   --sidebar-section-font-weight: 500;
-  --sidebar-focus-ring: inset 0 0 0 1px color-mix(in srgb, var(--primary-color) 50%, transparent);
+  --sidebar-focus-ring: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 50%, transparent);
 
   position: relative;
   grid-area: sidebar;
@@ -41,8 +41,9 @@
   user-select: none;
   transition: transform var(--transition-base),
     width var(--transition-base);
-  background-color: var(--surface-app);
-  border-right: 1px solid var(--border-color);
+  background-color: var(--color-app);
+  color: var(--color-text);
+  border-right: 1px solid var(--color-border);
   padding: var(--space-3) var(--sidebar-shell-padding-inline-end) var(--space-3) var(--sidebar-shell-padding-inline-start);
 }
 
@@ -96,12 +97,12 @@ body.layout-resizing-cursor {
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-sm);
-    color: var(--text-color);
-    font-size: var(--text-base);
+    color: var(--color-text);
+    font-size: var(--app-text-base);
     cursor: pointer;
 
     &:hover {
-      background-color: var(--surface-hover);
+      background-color: var(--color-surface-hover);
     }
 
     app-icon-display {
@@ -156,8 +157,8 @@ body.layout-resizing-cursor {
     display: block;
     width: 100%;
     height: 1px;
-    margin: 0 0.4rem;
-    background-color: var(--border-color);
+    margin: 0 0.35rem;
+    background-color: var(--color-border);
   }
 
   /* Library/Shelf/Magic Shelf children always visible (no toggle heading to drive collapse). */
@@ -250,7 +251,7 @@ body.layout-resizing-cursor {
     box-sizing: border-box;
     font-size: var(--sidebar-section-font-size);
     font-weight: var(--sidebar-section-font-weight);
-    color: var(--text-color-secondary);
+    color: var(--color-text-secondary);
     height: var(--sidebar-section-min-height);
     min-height: var(--sidebar-section-min-height);
     margin: var(--sidebar-section-spacing-before) 0 var(--sidebar-section-spacing-after);

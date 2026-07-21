@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { MessageService } from 'primeng/api';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
@@ -14,10 +15,10 @@ import { MagicShelfService } from '../magic-shelf/service/magic-shelf.service';
 import { UserService } from '../settings/user-management/user.service';
 import { NavItem } from '../../shared/layout/navigation/nav-item.model';
 import { buildAllNavPages, buildQuickActionNavItems } from '../../shared/layout/navigation/nav-catalog';
-import { IconSelection } from '../../shared/service/icon-picker.service';
 import { UrlHelperService } from '../../shared/service/url-helper.service';
 import { DialogLauncherService } from '../../shared/services/dialog-launcher.service';
-import { IconService } from '../../shared/services/icon.service';
+import { CustomSvgService } from '../../shared/services/custom-svg.service';
+import { toIconSelection } from '../../shared/icons/icon-selection';
 
 import { PaletteGroup, PaletteItem, PaletteItemKind } from './command-palette.model';
 
@@ -48,8 +49,9 @@ export class CommandPaletteService {
   private readonly libraryService = inject(LibraryService);
   private readonly dialogLauncherService = inject(DialogLauncherService);
   private readonly bookDialogHelperService = inject(BookDialogHelperService);
-  private readonly iconService = inject(IconService);
+  private readonly customSvgService = inject(CustomSvgService);
   private readonly urlHelper = inject(UrlHelperService);
+  private readonly messageService = inject(MessageService);
 
   private readonly _isOpen = signal(false);
   readonly isOpen = this._isOpen.asReadonly();
@@ -104,7 +106,7 @@ export class CommandPaletteService {
       for (const item of items) {
         if (item.icon?.type === 'CUSTOM_SVG' && !seen.has(item.icon.value)) {
           seen.add(item.icon.value);
-          this.iconService.getSvgIconContent(item.icon.value).subscribe({ error: () => undefined });
+          this.customSvgService.getSvgIconContent(item.icon.value).subscribe({ error: () => undefined });
         }
       }
     };
@@ -131,7 +133,7 @@ export class CommandPaletteService {
     this.hide();
     queueMicrotask(() => {
       if (item.command) {
-        item.command();
+        void Promise.resolve(item.command()).catch(() => undefined);
         return;
       }
       if (item.route) {
@@ -211,10 +213,10 @@ export class CommandPaletteService {
     const user = this.userService.currentUser();
     if (!user) return [];
     return buildQuickActionNavItems(this.translate, user.permissions, {
-      createLibrary: () => this.dialogLauncherService.openLibraryCreateDialog(),
-      createShelf: () => this.bookDialogHelperService.openShelfCreatorDialog(),
-      createMagicShelf: () => this.dialogLauncherService.openMagicShelfCreateDialog(),
-      uploadBook: () => this.dialogLauncherService.openFileUploadDialog(),
+      createLibrary: () => void this.dialogLauncherService.openLibraryCreateDialog().catch(() => undefined),
+      createShelf: () => void this.bookDialogHelperService.openShelfCreatorDialog().catch(() => undefined),
+      createMagicShelf: () => void this.dialogLauncherService.openMagicShelfCreateDialog().catch(() => undefined),
+      uploadBook: () => void this.dialogLauncherService.openFileUploadDialog().catch(() => undefined),
     }).map((item) => this.toPaletteNavItem(item, 'action'));
   });
 
@@ -233,7 +235,7 @@ export class CommandPaletteService {
         id: `shelf:${shelf.id}`,
         kind: 'shelf' as const,
         title: shelf.name,
-        icon: this.iconSelectionFor(shelf.icon, shelf.iconType, 'pi-bookmark'),
+        icon: shelf.icon ? toIconSelection(shelf.icon, shelf.iconType) : undefined,
         searchText: normalizeSearchTerm(shelf.name),
         route: [`/shelf/${shelf.id}/books`],
       }))
@@ -246,7 +248,7 @@ export class CommandPaletteService {
         id: `magic-shelf:${shelf.id}`,
         kind: 'magicShelf' as const,
         title: shelf.name,
-        icon: this.iconSelectionFor(shelf.icon, shelf.iconType, 'pi-sparkles'),
+        icon: shelf.icon ? toIconSelection(shelf.icon, shelf.iconType) : undefined,
         searchText: normalizeSearchTerm(shelf.name),
         route: [`/magic-shelf/${shelf.id}/books`],
       }))
@@ -259,7 +261,7 @@ export class CommandPaletteService {
         id: `library:${library.id}`,
         kind: 'library' as const,
         title: library.name,
-        icon: this.iconSelectionFor(library.icon, library.iconType, 'pi-folder'),
+        icon: library.icon ? toIconSelection(library.icon, library.iconType) : undefined,
         searchText: normalizeSearchTerm(library.name),
         route: [`/library/${library.id}/books`],
       }))
@@ -268,16 +270,6 @@ export class CommandPaletteService {
   private readonly visibleBookItems = computed<PaletteItem[]>(() =>
     this.trimmedQuery().length >= MIN_BOOK_SEARCH_LENGTH ? this.localBookItems() : []
   );
-
-  private iconSelectionFor(
-    value: string | null | undefined,
-    iconType: string | null | undefined,
-    fallback: string,
-  ): IconSelection {
-    if (!value) return { type: 'PRIME_NG', value: fallback };
-    if (iconType === 'CUSTOM_SVG') return { type: 'CUSTOM_SVG', value };
-    return { type: 'PRIME_NG', value };
-  }
 
   private toPaletteBookItem(book: Book): PaletteItem {
     const metadata = book.metadata;
@@ -292,7 +284,7 @@ export class CommandPaletteService {
       id: `book:${book.id}`,
       kind: 'book',
       title,
-      icon: { type: 'PRIME_NG', value: 'pi-book' },
+      icon: { type: 'LUCIDE', value: 'book-open' },
       searchText: normalizeSearchTerm(haystack),
       route: ['/book', book.id],
       queryParams: { tab: 'view' },
@@ -314,11 +306,10 @@ export class CommandPaletteService {
       id: `${kind}:${item.id}`,
       kind,
       title: item.label,
-      icon: item.icon ? { type: 'PRIME_NG', value: item.icon } : undefined,
+      icon: item.icon ? toIconSelection(item.icon, item.iconType) : undefined,
       searchText: normalizeSearchTerm(item.label),
       route: item.routerLink,
       command: item.action,
     };
   }
-
 }

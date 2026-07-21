@@ -1,9 +1,9 @@
-import {computed, Component, effect, inject, OnDestroy, OnInit, signal} from '@angular/core';
+import {computed, Component, DestroyRef, inject, OnInit, signal} from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {ActivatedRoute, Router} from '@angular/router';
 import {UserService} from '../../../settings/user-management/user.service';
 import {Book, BookRecommendation} from '../../../book/model/book.model';
-import {Subject} from 'rxjs';
-import {distinctUntilChanged, filter, map, takeUntil,} from 'rxjs/operators';
+import {distinctUntilChanged, filter, map} from 'rxjs/operators';
 import {BookService} from '../../../book/service/book.service';
 import {AppSettingsService} from '../../../../shared/service/app-settings.service';
 import {Tab, TabList, TabPanel, TabPanels, Tabs,} from 'primeng/tabs';
@@ -15,7 +15,15 @@ import {MetadataViewerComponent} from './metadata-viewer/metadata-viewer.compone
 import {MetadataEditorComponent} from './metadata-editor/metadata-editor.component';
 import {MetadataSearcherComponent} from './metadata-searcher/metadata-searcher.component';
 import {SidecarViewerComponent} from './sidecar-viewer/sidecar-viewer.component';
-import {injectQuery} from '@tanstack/angular-query-experimental';
+import {injectQuery, queryOptions} from '@tanstack/angular-query-experimental';
+import {bookRecommendationsQueryKey} from '../../../book/service/book-query-keys';
+
+enum BookMetadataTab {
+  View = 'view',
+  Edit = 'edit',
+  Match = 'match',
+  Sidecar = 'sidecar',
+}
 
 @Component({
   selector: 'app-book-metadata-center',
@@ -36,16 +44,17 @@ import {injectQuery} from '@tanstack/angular-query-experimental';
   ],
   styleUrls: ['./book-metadata-center.component.scss'],
 })
-export class BookMetadataCenterComponent implements OnInit, OnDestroy {
+export class BookMetadataCenterComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private bookService = inject(BookService);
   private userService = inject(UserService);
   private appSettingsService = inject(AppSettingsService);
   private metadataHostService = inject(BookMetadataHostService);
+  private destroyRef = inject(DestroyRef);
   readonly config = inject(DynamicDialogConfig, {optional: true});
   readonly ref = inject(DynamicDialogRef, {optional: true});
-  private destroy$ = new Subject<void>();
+  BookMetadataTab = BookMetadataTab;
 
   private currentBookId = signal<number | null>(this.config?.data?.bookId ?? null);
   private bookQuery = injectQuery(() => {
@@ -64,41 +73,49 @@ export class BookMetadataCenterComponent implements OnInit, OnDestroy {
     return this.bookService.bookDetailQueryOptions(bookId, true);
   });
   readonly book = computed(() => this.bookQuery.data() ?? null);
-  private readonly fetchRecommendations = effect(() => {
+  private readonly recommendationsQuery = injectQuery(() => {
     const bookId = this.currentBookId();
-    if (bookId == null) {
-      this.recommendedBooks = [];
-      return;
+    const settings = this.appSettingsService.appSettings();
+
+    if (bookId == null || !(settings?.similarBookRecommendation ?? false)) {
+      return queryOptions({
+        queryKey: bookRecommendationsQueryKey(-1, 20),
+        queryFn: async (): Promise<BookRecommendation[]> => [],
+        enabled: false,
+      });
     }
 
-    this.fetchBookRecommendationsIfNeeded(bookId);
+    return this.bookService.bookRecommendationsQueryOptions(bookId, 20);
   });
-
-  recommendedBooks: BookRecommendation[] = [];
-  private _tab: string = 'view';
-  canEditMetadata: boolean = false;
-  admin: boolean = false;
-  private readonly syncUserPermissionsEffect = effect(() => {
+  readonly recommendedBooks = computed(() =>
+    [...(this.recommendationsQuery.data() ?? [])].sort(
+      (a, b) => (b.similarityScore ?? 0) - (a.similarityScore ?? 0)
+    )
+  );
+  private _tab: BookMetadataTab = BookMetadataTab.View;
+  readonly canEditMetadata = computed(() => {
     const user = this.userService.currentUser();
-    if (!user) return;
-    this.canEditMetadata = user.permissions?.canEditMetadata ?? false;
-    this.admin = user.permissions?.admin ?? false;
+    return user?.permissions?.canEditMetadata ?? false;
+  });
+  readonly admin = computed(() => {
+    const user = this.userService.currentUser();
+    return user?.permissions?.admin ?? false;
   });
   get isPhysical(): boolean { return this.book()?.isPhysical ?? false; }
-  isLocalStorage: boolean = true;
+  readonly isLocalStorage = computed(() => this.appSettingsService.appSettings()?.diskType === 'LOCAL');
   get canShowSidecarTab(): boolean {
     const settings = this.appSettingsService.appSettings();
     const sidecarEnabled = settings?.metadataPersistenceSettings?.sidecarSettings?.enabled ?? false;
 
-    return (this.admin || this.canEditMetadata) && !this.isPhysical && this.isLocalStorage && sidecarEnabled;
+    return (this.admin() || this.canEditMetadata()) && !this.isPhysical && this.isLocalStorage() && sidecarEnabled;
   }
-  private validTabs = ['view', 'edit', 'match', 'sidecar'];
+  private validTabs = Object.values(BookMetadataTab);
 
-  get tab(): string {
+  get tab(): BookMetadataTab {
     return this._tab;
   }
 
-  set tab(value: string) {
+  set tab(value: BookMetadataTab) {
     this._tab = value;
 
     if (!this.config) {
@@ -119,7 +136,7 @@ export class BookMetadataCenterComponent implements OnInit, OnDestroy {
         .pipe(
           map(params => Number(params.get('bookId'))),
           filter(bookId => !isNaN(bookId)),
-          takeUntil(this.destroy$)
+          takeUntilDestroyed(this.destroyRef)
         )
         .subscribe(bookId => this.currentBookId.set(bookId));
     }
@@ -128,42 +145,47 @@ export class BookMetadataCenterComponent implements OnInit, OnDestroy {
       .pipe(
         filter((bookId): bookId is number => !!bookId),
         distinctUntilChanged(),
-        takeUntil(this.destroy$)
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(bookId => this.currentBookId.set(bookId));
 
     this.route.queryParamMap
       .pipe(
-        map(params => params.get('tab') ?? 'view'),
+        map(params => params.get('tab')),
         distinctUntilChanged(),
-        takeUntil(this.destroy$)
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(tabParam => {
-        this._tab = this.validTabs.includes(tabParam) ? tabParam : 'view';
+        if (this.validTabs.includes(tabParam as BookMetadataTab) && this.canOpenTab(tabParam as BookMetadataTab)) {
+          this._tab = tabParam as BookMetadataTab;
+        } else {
+          const defaultTab = BookMetadataTab.View;
+          this._tab = defaultTab;
+          if (!this.config) {
+            this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: {tab: defaultTab},
+              queryParamsHandling: 'merge',
+              replaceUrl: true
+            });
+          }
+        }
       });
 
-    const currentSettings = this.appSettingsService.appSettings();
-    if (currentSettings) {
-      this.isLocalStorage = currentSettings.diskType === 'LOCAL';
+  }
+
+  protected canOpenTab(tab: BookMetadataTab): boolean {
+    switch (tab) {
+      case BookMetadataTab.View:
+        return true;
+      case BookMetadataTab.Edit:
+      case BookMetadataTab.Match:
+        return this.admin() || this.canEditMetadata();
+      case BookMetadataTab.Sidecar:
+        return this.canShowSidecarTab;
+      default:
+        return false;
     }
   }
 
-  private fetchBookRecommendationsIfNeeded(bookId: number): void {
-    const settings = this.appSettingsService.appSettings();
-    if (!settings || !(settings.similarBookRecommendation ?? false)) {
-      return;
-    }
-    this.bookService.getBookRecommendations(bookId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(recommendations => {
-        this.recommendedBooks = recommendations.sort(
-          (a, b) => (b.similarityScore ?? 0) - (a.similarityScore ?? 0)
-        );
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
 }
