@@ -21,13 +21,20 @@ permissions:
   packages: write
   issues: write
 
+concurrency:
+  group: sync-and-publish
+  cancel-in-progress: false
+
+env:
+  TZ: UTC
+
 jobs:
   sync-and-build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout fork
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: feature/acquisition
           fetch-depth: 0
@@ -67,7 +74,11 @@ jobs:
             publish=false
           fi
 
-          if [ "${{ inputs.skip_tests }}" = "true" ] || [ "$publish" != "true" ]; then
+          # skip_tests is only safe when no new upstream code is being merged;
+          # a merge always gets the full test gate.
+          if [ "$merge" = "true" ]; then
+            run_tests=true
+          elif [ "${{ inputs.skip_tests }}" = "true" ] || [ "$publish" != "true" ]; then
             run_tests=false
           else
             run_tests=true
@@ -88,8 +99,11 @@ jobs:
         if: steps.check.outputs.merge == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          if git merge upstream/main --no-edit; then
+          # --no-ff: a fast-forward would leave HEAD on an upstream commit,
+          # which the renumber step's --amend could then rewrite.
+          if git merge --no-ff upstream/main --no-edit; then
             exit 0
           fi
 
@@ -97,14 +111,20 @@ jobs:
 
           # A lone gradle.lockfile conflict is pure churn: our build.gradle.kts
           # additions merged cleanly, so take upstream's lockfile and regenerate
-          # it from the merged dependency declarations.
-          if [ "${#conflicts[@]}" -eq 1 ] && [ "${conflicts[0]}" = "backend/gradle.lockfile" ]; then
+          # it from the merged dependency declarations. Guards: upstream must
+          # still ship the file (not a delete-side conflict) and the regen must
+          # succeed — anything else falls through to the issue-filing path so
+          # the failure is never silent.
+          if [ "${#conflicts[@]}" -eq 1 ] && [ "${conflicts[0]}" = "backend/gradle.lockfile" ] \
+             && git cat-file -e MERGE_HEAD:backend/gradle.lockfile 2>/dev/null; then
             echo "Only backend/gradle.lockfile conflicts — regenerating from merged build.gradle.kts."
             git checkout --theirs backend/gradle.lockfile
-            (cd backend && ./gradlew dependencies --write-locks -q)
-            git add backend/gradle.lockfile
-            git commit --no-edit
-            exit 0
+            if (cd backend && ./gradlew dependencies --write-locks -q); then
+              git add backend/gradle.lockfile
+              git commit --no-edit
+              exit 0
+            fi
+            echo "Lockfile regeneration failed — treating as a real conflict."
           fi
 
           {
@@ -112,7 +132,11 @@ jobs:
             echo
             echo "\`git merge upstream/main\` into \`feature/acquisition\` conflicted in:"
             echo
-            printf -- '- `%s`\n' "${conflicts[@]}"
+            if [ "${#conflicts[@]}" -gt 0 ]; then
+              printf -- '- `%s`\n' "${conflicts[@]}"
+            else
+              echo "(no unmerged paths — the merge failed before conflict detection; see the run log)"
+            fi
             echo
             echo "Resolve locally, test, and push; the next nightly run will then proceed:"
             echo '```'
@@ -122,7 +146,7 @@ jobs:
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY" > /tmp/conflict-report.md
 
-          open_issues=$(gh issue list --state open --search 'in:title "Upstream sync blocked"' --json number --jq 'length' || echo 1)
+          open_issues=$(gh issue list --state open --search 'in:title "Upstream sync blocked"' --json number --jq 'length' || echo 0)
           if [ "$open_issues" -eq 0 ]; then
             gh issue create \
               --title "Upstream sync blocked by merge conflicts" \
@@ -131,8 +155,19 @@ jobs:
             echo "An open sync-conflict issue already exists — not filing another."
           fi
 
-          git merge --abort
+          git merge --abort || true
           exit 1
+
+      - name: Warn if workflow definition drifted from develop
+        if: always()
+        run: |
+          git fetch origin develop -q || true
+          if git rev-parse --verify -q origin/develop >/dev/null \
+             && ! git diff --quiet HEAD origin/develop -- .github/workflows/sync-and-publish.yml; then
+            echo "::warning::sync-and-publish.yml differs between feature/acquisition and develop. The nightly schedule executes develop's copy — push the updated workflow to develop."
+            echo "## ⚠ Workflow definition drift" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`sync-and-publish.yml\` differs between \`feature/acquisition\` and \`develop\`; the nightly schedule executes develop's copy." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Fix Flyway version collisions
         if: steps.check.outputs.merge == 'true'

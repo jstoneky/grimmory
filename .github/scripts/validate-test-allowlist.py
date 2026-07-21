@@ -67,11 +67,13 @@ def main() -> int:
             print(f"  - {entry}")
 
     if fixed:
-        print(f"::error ::{len(fixed)} allowlist entry/entries now pass — remove these lines from {args.allowlist}:")
+        # An upstream fix (or a flaky test having a good day) should not block
+        # the nightly sync — surface it as cleanup work, not a failure.
+        print(f"::warning ::{len(fixed)} allowlist entry/entries now pass — remove these lines from {args.allowlist}:")
         for entry in fixed:
             print(f"  - {entry}")
 
-    if unexpected or fixed:
+    if unexpected:
         return 1
 
     print(f"OK: {len(failures)} failing test(s) all match the allowlist.")

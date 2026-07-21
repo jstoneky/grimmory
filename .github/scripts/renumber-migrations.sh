@@ -5,8 +5,9 @@ set -euo pipefail
 
 MIGRATION_DIR="backend/src/main/resources/db/migration"
 
-# All migration filenames present in upstream/main
-upstream_files=$(git ls-tree upstream/main "$MIGRATION_DIR" --name-only \
+# All migration filenames present in upstream/main.
+# -r is required: without it ls-tree returns the directory entry itself.
+upstream_files=$(git ls-tree -r upstream/main "$MIGRATION_DIR" --name-only \
   | grep -oP 'V\d+__[^/]+\.sql' || true)
 
 # Highest version number in upstream
@@ -48,6 +49,18 @@ fi
 CUSTOM_BASE=900
 floor=$(( max_upstream > CUSTOM_BASE ? max_upstream : CUSTOM_BASE ))
 
+# Never renumber a migration that has already been published: renaming a
+# migration Flyway has applied on user databases breaks their schema history.
+# origin/<branch> reflects the last pushed (and therefore published) state.
+published_ref="origin/feature/acquisition"
+for f in "${our_migrations[@]}"; do
+  if git cat-file -e "${published_ref}:${f}" 2>/dev/null; then
+    echo "ERROR: collision detected, but $(basename "$f") is already published on ${published_ref}." >&2
+    echo "Renumbering it would corrupt deployed Flyway histories — resolve manually." >&2
+    exit 1
+  fi
+done
+
 echo "Collision detected. Renumbering custom migrations above V${floor}..."
 
 next=$((floor + 1))
@@ -64,4 +77,4 @@ for f in "${our_migrations[@]}"; do
 done
 
 git add "$MIGRATION_DIR"
-echo "Done. Custom migrations renumbered starting at V$((max_upstream + 1))."
+echo "Done. Custom migrations renumbered starting at V$((floor + 1))."
