@@ -4,9 +4,8 @@ import org.booklore.crons.BookAcquisitionScheduler;
 import org.booklore.model.dto.acquisition.AcquisitionResult;
 import org.booklore.model.entity.WantedBookEntity;
 import org.booklore.model.enums.WantedBookStatus;
-import org.booklore.model.websocket.Topic;
 import org.booklore.repository.WantedBookRepository;
-import org.booklore.service.NotificationService;
+import org.booklore.service.acquisition.AcquisitionNotifier;
 import org.booklore.service.acquisition.AcquisitionDispatchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,7 @@ class BookAcquisitionSchedulerTest {
 
     @Mock private AcquisitionDispatchService dispatchService;
     @Mock private WantedBookRepository wantedBookRepository;
-    @Mock private NotificationService notificationService;
+    @Mock private AcquisitionNotifier acquisitionNotifier;
 
     @InjectMocks
     private BookAcquisitionScheduler scheduler;
@@ -72,7 +71,7 @@ class BookAcquisitionSchedulerTest {
         verify(dispatchService).searchAndDispatch(wantedBook1);
         verify(dispatchService).searchAndDispatch(wantedBook2);
         // Notification only sent for book2 (book1 threw before notification)
-        verify(notificationService, times(1)).sendMessage(eq(Topic.ACQUISITION_UPDATE), any());
+        verify(acquisitionNotifier, times(1)).broadcast(any());
     }
 
     @Test
@@ -83,7 +82,7 @@ class BookAcquisitionSchedulerTest {
         scheduler.triggerNow();
 
         verify(dispatchService, never()).searchAndDispatch(any());
-        verify(notificationService, never()).sendMessage(any(), any());
+        verify(acquisitionNotifier, never()).broadcast(any());
     }
 
     @Test
@@ -95,7 +94,7 @@ class BookAcquisitionSchedulerTest {
 
         scheduler.triggerNow();
 
-        verify(notificationService).sendMessage(eq(Topic.ACQUISITION_UPDATE), any());
+        verify(acquisitionNotifier).broadcast(any());
     }
 
     @Test
@@ -112,7 +111,7 @@ class BookAcquisitionSchedulerTest {
 
         assertThat(exhausted.getStatus()).isEqualTo(WantedBookStatus.FAILED_PERMANENT);
         verify(dispatchService, never()).searchAndDispatch(any());
-        verify(notificationService).sendMessage(eq(Topic.ACQUISITION_UPDATE), any());
+        verify(acquisitionNotifier).broadcast(any());
     }
 
     @Test

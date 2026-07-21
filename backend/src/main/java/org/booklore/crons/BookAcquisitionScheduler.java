@@ -4,10 +4,9 @@ import org.booklore.model.dto.acquisition.AcquisitionResult;
 import org.booklore.model.entity.WantedBookEntity;
 import org.booklore.model.enums.WantedBookStatus;
 import org.booklore.model.websocket.AcquisitionNotification;
-import org.booklore.model.websocket.Topic;
 import org.booklore.repository.WantedBookRepository;
-import org.booklore.service.NotificationService;
 import org.booklore.service.acquisition.AcquisitionDispatchService;
+import org.booklore.service.acquisition.AcquisitionNotifier;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +22,7 @@ public class BookAcquisitionScheduler {
 
     private final AcquisitionDispatchService dispatchService;
     private final WantedBookRepository wantedBookRepository;
-    private final NotificationService notificationService;
+    private final AcquisitionNotifier acquisitionNotifier;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -59,7 +58,7 @@ public class BookAcquisitionScheduler {
                             book.getId(), book.getTitle());
                     book.setStatus(WantedBookStatus.FAILED_PERMANENT);
                     wantedBookRepository.save(book);
-                    notificationService.sendMessage(Topic.ACQUISITION_UPDATE,
+                    acquisitionNotifier.broadcast(
                             AcquisitionNotification.of(book.getId(), book.getTitle(), WantedBookStatus.FAILED_PERMANENT, "Max retries reached"));
                     continue;
                 }
@@ -74,8 +73,7 @@ public class BookAcquisitionScheduler {
                             ? "Dispatched to SABnzbd: " + result.nzbTitle()
                             : "No confident match found";
 
-                    notificationService.sendMessage(
-                            Topic.ACQUISITION_UPDATE,
+                    acquisitionNotifier.broadcast(
                             AcquisitionNotification.of(book.getId(), book.getTitle(), newStatus, message)
                     );
                 } catch (Exception e) {

@@ -4,10 +4,8 @@ import org.booklore.model.entity.AcquisitionClientEntity;
 import org.booklore.model.entity.WantedBookEntity;
 import org.booklore.model.enums.WantedBookStatus;
 import org.booklore.model.websocket.AcquisitionNotification;
-import org.booklore.model.websocket.Topic;
 import org.booklore.repository.AcquisitionClientRepository;
 import org.booklore.repository.WantedBookRepository;
-import org.booklore.service.NotificationService;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +34,7 @@ public class DownloadCompletionPoller {
     private final AcquisitionClientRepository clientRepository;
     private final SabnzbdClient sabnzbdClient;
     private final ObjectMapper objectMapper;
-    private final NotificationService notificationService;
+    private final AcquisitionNotifier acquisitionNotifier;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -77,13 +75,13 @@ public class DownloadCompletionPoller {
             log.info("Book '{}' download completed (nzo_id={})", book.getTitle(), nzoId);
             book.setStatus(WantedBookStatus.DOWNLOADED);
             wantedBookRepository.save(book);
-            notificationService.sendMessage(Topic.ACQUISITION_UPDATE,
+            acquisitionNotifier.broadcast(
                     AcquisitionNotification.of(book.getId(), book.getTitle(), WantedBookStatus.DOWNLOADED, "Download completed"));
         } else if ("Failed".equalsIgnoreCase(historyStatus) || "Deleted".equalsIgnoreCase(historyStatus)) {
             log.warn("Book '{}' download {} in SABnzbd (nzo_id={})", book.getTitle(), historyStatus, nzoId);
             book.setStatus(WantedBookStatus.FAILED);
             wantedBookRepository.save(book);
-            notificationService.sendMessage(Topic.ACQUISITION_UPDATE,
+            acquisitionNotifier.broadcast(
                     AcquisitionNotification.of(book.getId(), book.getTitle(), WantedBookStatus.FAILED, "Download " + historyStatus.toLowerCase()));
         } else if (historyStatus == null) {
             log.debug("Book '{}' not in queue or history yet (nzo_id={})", book.getTitle(), nzoId);
