@@ -3,7 +3,7 @@ package org.booklore.acquisition;
 import org.booklore.model.dto.BookMetadata;
 import org.booklore.repository.BookMetadataRepository;
 import org.booklore.service.acquisition.BookDiscoveryService;
-import org.booklore.service.metadata.parser.OpenLibraryParser;
+import org.booklore.service.acquisition.OpenLibraryParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

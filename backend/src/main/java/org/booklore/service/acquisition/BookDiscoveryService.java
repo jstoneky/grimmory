@@ -2,7 +2,6 @@ package org.booklore.service.acquisition;
 
 import org.booklore.model.dto.BookMetadata;
 import org.booklore.repository.BookMetadataRepository;
-import org.booklore.service.metadata.parser.OpenLibraryParser;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AllArgsConstructor;

@@ -6,5 +6,9 @@
   },
   "settingsTab": "Acquisition",
   "permGroup": "Acquisition",
-  "permManageAcquisition": "Discover & Wanted Books"
+  "permManageAcquisition": "Discover & Wanted Books",
+  "bookdrop": {
+    "retryFetchTooltip": "Retry metadata fetch",
+    "retryFetchFailed": "Failed to re-fetch metadata"
+  }
 }

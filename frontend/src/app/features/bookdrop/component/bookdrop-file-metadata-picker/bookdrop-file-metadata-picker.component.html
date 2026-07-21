@@ -356,7 +356,7 @@
           severity="warn"
           [icon]="refetchingMetadata ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
           [outlined]="true"
-          pTooltip="Retry metadata fetch"
+          [pTooltip]="'acquisition.bookdrop.retryFetchTooltip' | transloco"
           tooltipPosition="left"
           [disabled]="refetchingMetadata"
           (onClick)="retryFetchMetadata()"

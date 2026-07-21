@@ -18,7 +18,7 @@ import {ALL_METADATA_FIELDS, getArrayFields, getBottomFields, getTextareaFields,
 import {MetadataUtilsService} from '../../../../shared/metadata';
 import {MetadataProviderSpecificFields} from '../../../../shared/model/app-settings.model';
 import {AppSettingsService} from '../../../../shared/service/app-settings.service';
-import {TranslocoDirective, TranslocoService} from '@jsverse/transloco';
+import {TranslocoDirective, TranslocoPipe, TranslocoService} from '@jsverse/transloco';
 import {BookdropService} from '../../service/bookdrop.service';
 
 @Component({
@@ -36,6 +36,7 @@ import {BookdropService} from '../../service/bookdrop.service';
     LazyLoadImageModule,
     DatePicker,
     TranslocoDirective,
+    TranslocoPipe,
     CdkDropList,
     CdkDrag,
   ],
@@ -201,7 +202,7 @@ export class BookdropFileMetadataPickerComponent {
       },
       error: () => {
         this.refetchingMetadata = false;
-        this.messageService.add({severity: 'error', summary: 'Error', detail: 'Failed to re-fetch metadata'});
+        this.messageService.add({severity: 'error', summary: 'Error', detail: this.t.translate('acquisition.bookdrop.retryFetchFailed')});
       }
     });
   }

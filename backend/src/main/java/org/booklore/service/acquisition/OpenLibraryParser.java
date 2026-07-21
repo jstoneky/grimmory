@@ -1,4 +1,4 @@
-package org.booklore.service.metadata.parser;
+package org.booklore.service.acquisition;
 
 import org.booklore.model.dto.BookMetadata;
 import org.booklore.model.enums.MetadataProvider;
